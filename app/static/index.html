@@ -1,45 +1,59 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Stacklog</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Public+Sans:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap">
 <style>
   :root {
-    --bg: #eef0ee; --surface: #ffffff; --surface-2: #e4e7e3; --border: #cfd4cd;
-    --fg: #1c201d; --fg-dim: #5c655d; --ok: #3f7d4a; --danger: #a8485a;
+    --bg: #f5f2eb; --surface: #eae6db; --surface-2: #ded8c7; --border: #b0a888;
+    --fg: #1a3a28; --fg-dim: #5a7a68; --ok: #1a5c3a; --danger: #a8324a; --glow: none;
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #13171a; --surface: #1b2024; --surface-2: #20262b; --border: #2d3540;
-      --fg: #eef1f0; --fg-dim: #8b958f; --ok: #6cc77f; --danger: #cf8a94;
+      --bg: #000308; --surface: #020810; --surface-2: #001540; --border: #003388;
+      --fg: #00bbee; --fg-dim: #0088bb; --ok: #00b4ff; --danger: #ff3b5c;
+      --glow: 0 0 10px #00b4ff66, 0 0 20px #00b4ff33;
       color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
-    --bg: #13171a; --surface: #1b2024; --surface-2: #20262b; --border: #2d3540;
-    --fg: #eef1f0; --fg-dim: #8b958f; --ok: #6cc77f; --danger: #cf8a94;
+    --bg: #000308; --surface: #020810; --surface-2: #001540; --border: #003388;
+    --fg: #00bbee; --fg-dim: #0088bb; --ok: #00b4ff; --danger: #ff3b5c;
+    --glow: 0 0 10px #00b4ff66, 0 0 20px #00b4ff33;
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; }
   body {
     background: var(--bg); color: var(--fg);
-    font-family: "Public Sans", -apple-system, "Segoe UI", sans-serif;
+    font-family: "Share Tech Mono", ui-monospace, monospace;
     padding: 28px 16px; display: flex; flex-direction: column; gap: 22px;
     max-width: 1280px; margin: 0 auto;
   }
-  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
-  h1 { text-wrap: balance; font-size: 1.7rem; font-weight: 800; margin: 0; letter-spacing: -0.01em; }
+  .mono { font-family: "Share Tech Mono", ui-monospace, monospace; }
+  h1 {
+    text-wrap: balance; font-family: "Orbitron", monospace; font-size: 1.7rem; font-weight: 700;
+    margin: 0; letter-spacing: 1px; color: var(--fg); text-shadow: var(--glow);
+  }
   .topstrip { display: flex; flex-direction: column; gap: 14px; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
   .prompt { font-size: 0.82rem; color: var(--fg-dim); display: flex; align-items: baseline; gap: 6px; }
   .prompt .cursor { display: inline-block; width: 7px; height: 13px; background: var(--ok); animation: blink 1.1s steps(1) infinite; }
   @keyframes blink { 50% { opacity: 0; } }
   @media (prefers-reduced-motion: reduce) { .prompt .cursor { animation: none; } }
   .sub { color: var(--fg-dim); font-size: 0.92rem; margin: 0; }
+
+  .controls { display: flex; gap: 8px; }
+  .theme-toggle {
+    font-family: "Share Tech Mono", monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--fg-dim); background: none; border: 1px solid var(--border); border-radius: 4px;
+    padding: 4px 10px; cursor: pointer; transition: all 0.2s;
+  }
+  .theme-toggle:hover { color: var(--ok); border-color: var(--ok); background: var(--surface-2); }
 
   .summarybar { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; display: flex; flex-wrap: wrap; gap: 18px; align-items: center; }
   .summarybar .big { font-family: "JetBrains Mono", monospace; font-size: 1.9rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
@@ -48,8 +62,10 @@
   .summarybar .track > span { display: block; height: 100%; background: var(--ok); border-radius: 999px; transition: width 0.4s ease; }
 
   .category-section { display: flex; flex-direction: column; gap: 12px; }
-  .category-section.drag-over-section > .panels { outline: 2px dashed var(--fg-dim); outline-offset: 4px; border-radius: 12px; }
-  .category-head { display: flex; align-items: center; gap: 10px; }
+  .category-section.drag-over-section .panels { outline: 2px dashed var(--fg-dim); outline-offset: 4px; border-radius: 12px; }
+  .category-head { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 2px 0; }
+  .category-head .chevron { font-size: 0.7rem; }
+  .category-section.expanded > .category-head .chevron { transform: rotate(90deg); }
   .category-head h2 {
     font-size: 0.78rem; margin: 0; text-transform: uppercase; letter-spacing: 0.07em;
     color: var(--fg-dim); font-weight: 700; cursor: text;
@@ -57,14 +73,33 @@
   .category-head h2[contenteditable="true"] { outline: 1px dashed var(--fg-dim); border-radius: 4px; padding: 0 2px; color: var(--fg); }
   .category-head .catcount { font-family: "JetBrains Mono", monospace; font-size: 0.72rem; color: var(--fg-dim); }
   .category-head .addinline {
-    background: none; border: 1px dashed var(--border); color: var(--fg-dim); cursor: pointer;
-    font-size: 0.72rem; border-radius: 999px; padding: 2px 10px; margin-left: auto;
+    background: var(--surface); border: 1px solid var(--border); color: var(--fg-dim); cursor: pointer;
+    font-size: 0.74rem; font-weight: 700; border-radius: 7px; padding: 5px 12px; margin-left: auto; white-space: nowrap;
   }
-  .category-head .addinline:hover { border-color: var(--fg-dim); color: var(--fg); }
+  .category-head .addinline:hover { border-color: var(--ok); color: var(--ok); }
   .category-head .iconbtn { opacity: 0; transition: opacity 0.15s; }
   .category-head:hover .iconbtn { opacity: 1; }
 
-  .panels { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); align-items: start; min-height: 12px; }
+  .category-progress { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .category-progress .track { flex: 1; height: 5px; border-radius: 999px; background: var(--surface-2); overflow: hidden; min-width: 0; }
+  .category-progress .track > span { display: block; height: 100%; border-radius: 999px; background: var(--ok); transition: width 0.4s ease; }
+  .category-progress .count { font-family: "JetBrains Mono", monospace; font-size: 0.7rem; color: var(--fg-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .category-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .category-section.expanded .category-body { grid-template-rows: 1fr; }
+  .category-body-inner {
+    overflow: hidden; min-height: 0;
+    opacity: 0; transform: scaleY(0.96); transform-origin: top;
+    transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .category-section.expanded .category-body-inner { opacity: 1; transform: scaleY(1); }
+  @media (prefers-reduced-motion: reduce) {
+    .category-body, .category-body-inner { transition: none; }
+  }
+
+  .panels { display: grid; gap: 16px; grid-template-columns: repeat(3, 1fr); align-items: start; min-height: 12px; }
+  @media (max-width: 900px) { .panels { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 620px) { .panels { grid-template-columns: 1fr; } }
   .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; border-left: 4px solid var(--accent); }
   .panel-head { padding: 14px 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; border-bottom: 1px solid var(--border); background: var(--surface-2); cursor: pointer; }
   .chevron { background: none; border: none; color: var(--fg-dim); cursor: pointer; font-size: 0.8rem; padding: 2px 4px; line-height: 1; border-radius: 6px; transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
@@ -128,7 +163,15 @@
   .newproject summary::-webkit-details-marker { display: none; }
   .newproject summary::before { content: "+"; font-size: 1.1rem; }
   .newproject[open] summary::before { content: "-"; }
-  .newform { display: flex; flex-direction: column; gap: 12px; padding-top: 14px; }
+  .newform { display: flex; flex-direction: column; gap: 12px; }
+  .newproject .newform { padding-top: 14px; }
+
+  .addcategory {
+    display: block; width: 100%; background: none; border: 1px dashed var(--border); color: var(--fg-dim);
+    cursor: pointer; font-size: 0.88rem; font-weight: 700; border-radius: 10px; padding: 13px; text-align: center;
+  }
+  .addcategory:hover { border-color: var(--fg-dim); color: var(--fg); }
+  #newCategoryHost form.newform { background: var(--surface); border: 1px dashed var(--border); border-radius: 10px; padding: 16px 18px; }
   .newform input[type="text"] { background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px; padding: 9px 11px; color: var(--fg); font-size: 0.9rem; }
   .swatches { display: flex; gap: 8px; flex-wrap: wrap; }
   .swatch { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
@@ -142,29 +185,38 @@
 <body>
 
 <div class="topstrip">
-  <div class="prompt mono">$ stacklog status<span class="cursor"></span></div>
+  <div class="topbar">
+    <div class="prompt mono">$ stacklog status<span class="cursor"></span></div>
+    <div class="controls">
+      <button type="button" class="theme-toggle" id="themeBtn"></button>
+      <button type="button" class="theme-toggle" id="langBtn"></button>
+    </div>
+  </div>
   <h1>Stacklog</h1>
-  <p class="sub">backlog self-hosted pra projetos de verdade — o que tem e o que falta, num lugar só.</p>
+  <p class="sub" id="subtitle">status de tudo que você tá construindo.</p>
 </div>
+
+<div id="categoriesRoot"></div>
 
 <div class="summarybar" id="summarybar">
   <div>
     <div class="big mono" id="overallCount">–</div>
-    <div class="biglabel">concluídas</div>
+    <div class="biglabel" id="overallLabel">concluídas</div>
   </div>
   <div class="track"><span id="overallTrack" style="width:0%"></span></div>
   <div class="biglabel mono" id="overallPct">–</div>
 </div>
 
-<div id="categoriesRoot"></div>
+<div id="newCategoryHost">
+  <button type="button" class="addcategory" id="newCategoryBtn">+ nova categoria</button>
+</div>
 
-<details class="newproject">
-  <summary>Nova categoria</summary>
-  <form class="newform" id="newCategoryForm">
-    <input type="text" id="ncName" placeholder="nome da categoria (ex: pessoal, trabalho, textos)" required>
+<template id="newCategoryFormTemplate">
+  <form class="newform">
+    <input type="text" class="ncName" placeholder="nome da categoria (ex: pessoal, trabalho, textos)" required>
     <button type="submit">criar categoria</button>
   </form>
-</details>
+</template>
 
 <template id="newProjectFormTemplate">
   <details class="newproject">
@@ -179,11 +231,147 @@
 </template>
 
 <footer>
-  self-hosted · dados em /data/stacklog.db · <a href="https://github.com/juliomauro/stacklog" target="_blank" rel="noopener">github.com/juliomauro/stacklog</a>
+  <span id="footerText">self-hosted · dados em /data/stacklog.db · </span><a href="https://github.com/juliomauro/stacklog" target="_blank" rel="noopener">github.com/juliomauro/stacklog</a>
 </footer>
 
 <script>
 (function () {
+  const STRINGS = {
+    pt: {
+      subtitle: "status de tudo que você tá construindo.",
+      done: "concluídas",
+      addCategory: "+ nova categoria",
+      newCategoryPlaceholder: "nome da categoria (ex: pessoal, trabalho, textos)",
+      createCategory: "criar categoria",
+      newProject: "Novo projeto",
+      projectNamePlaceholder: "nome do projeto",
+      projectTagPlaceholder: "tag (opcional, ex: alpha, em produção)",
+      createProject: "criar projeto",
+      footerText: "self-hosted · dados em /data/stacklog.db · ",
+      noCategoriesYet: 'Nenhuma categoria ainda. Use "{btn}" abaixo pra criar a primeira (ex: pessoal, trabalho, textos).',
+      uncategorized: "Sem categoria",
+      renameHint: "clique duas vezes pra renomear",
+      deleteCategoryTitle: "excluir categoria (projetos viram sem categoria)",
+      confirmDeleteCategory: 'Excluir a categoria "{name}"? Os projetos dentro dela ficam sem categoria, nada é apagado.',
+      addProjectInline: "+ novo projeto",
+      showHideCategory: "mostrar/esconder categoria",
+      noProjectsYet: 'Nenhum projeto aqui ainda. Arraste um card pra cá ou use "{btn}".',
+      dragToReorder: "arrastar para reordenar",
+      showHideTasks: "mostrar/esconder tarefas",
+      noTag: "sem tag",
+      deleteProjectTitle: "excluir projeto",
+      confirmDeleteProject: 'Excluir o projeto "{name}" e todas as suas tarefas?',
+      noTasksYet: "Nada pendente ainda. Adicione o primeiro item abaixo.",
+      newTaskPlaceholder: "novo item pendente...",
+      newTaskAriaLabel: "novo item para {name}",
+      addTask: "adicionar",
+      removeTask: "remover",
+      removeItem: "remover item",
+      themeDark: "◈ escuro",
+      themeLight: "◈ claro"
+    },
+    en: {
+      subtitle: "status of everything you're building.",
+      done: "done",
+      addCategory: "+ new category",
+      newCategoryPlaceholder: "category name (e.g. personal, work, writing)",
+      createCategory: "create category",
+      newProject: "New project",
+      projectNamePlaceholder: "project name",
+      projectTagPlaceholder: "tag (optional, e.g. alpha, in production)",
+      createProject: "create project",
+      footerText: "self-hosted · data at /data/stacklog.db · ",
+      noCategoriesYet: 'No categories yet. Use "{btn}" below to create the first one (e.g. personal, work, writing).',
+      uncategorized: "Uncategorized",
+      renameHint: "double-click to rename",
+      deleteCategoryTitle: "delete category (its projects become uncategorized)",
+      confirmDeleteCategory: 'Delete category "{name}"? Its projects become uncategorized, nothing is deleted.',
+      addProjectInline: "+ new project",
+      showHideCategory: "show/hide category",
+      noProjectsYet: 'No projects here yet. Drag a card here or use "{btn}".',
+      dragToReorder: "drag to reorder",
+      showHideTasks: "show/hide tasks",
+      noTag: "no tag",
+      deleteProjectTitle: "delete project",
+      confirmDeleteProject: 'Delete project "{name}" and all its tasks?',
+      noTasksYet: "Nothing pending yet. Add the first item below.",
+      newTaskPlaceholder: "new pending item...",
+      newTaskAriaLabel: "new item for {name}",
+      addTask: "add",
+      removeTask: "remove",
+      removeItem: "remove item",
+      themeDark: "◈ dark",
+      themeLight: "◈ light"
+    }
+  };
+
+  function detectLang() {
+    const candidates = (navigator.languages && navigator.languages.length) ? navigator.languages : [navigator.language || "en"];
+    for (const l of candidates) {
+      if (/^pt/i.test(l)) return "pt";
+      if (/^en/i.test(l)) return "en";
+    }
+    return "en";
+  }
+  function loadLangOverride() {
+    try {
+      const v = localStorage.getItem("stacklog_lang");
+      return (v === "pt" || v === "en") ? v : null;
+    } catch (e) { return null; }
+  }
+  let LANG = loadLangOverride() || detectLang();
+
+  function t(key, vars) {
+    let str = (STRINGS[LANG] && STRINGS[LANG][key]) || STRINGS.en[key] || key;
+    if (vars) for (const k in vars) str = str.replace(`{${k}}`, vars[k]);
+    return str;
+  }
+
+  const themeBtn = document.getElementById("themeBtn");
+  const langBtn = document.getElementById("langBtn");
+
+  function currentTheme() {
+    const override = document.documentElement.dataset.theme;
+    if (override === "dark" || override === "light") return override;
+    return (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
+  }
+  function updateThemeBtn() {
+    const next = currentTheme() === "dark" ? "light" : "dark";
+    themeBtn.textContent = t(next === "dark" ? "themeDark" : "themeLight");
+  }
+  function toggleTheme() {
+    const next = currentTheme() === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem("stacklog_theme", next); } catch (e) { /* ignore */ }
+    updateThemeBtn();
+  }
+  function updateLangBtn() {
+    langBtn.textContent = LANG === "pt" ? "◈ English" : "◈ PT-BR";
+  }
+  function applyStaticStrings() {
+    document.documentElement.lang = LANG === "pt" ? "pt-BR" : "en";
+    document.getElementById("subtitle").textContent = t("subtitle");
+    document.getElementById("overallLabel").textContent = t("done");
+    document.getElementById("newCategoryBtn").textContent = t("addCategory");
+    document.getElementById("footerText").textContent = t("footerText");
+    updateThemeBtn();
+    updateLangBtn();
+  }
+  function toggleLang() {
+    LANG = LANG === "pt" ? "en" : "pt";
+    try { localStorage.setItem("stacklog_lang", LANG); } catch (e) { /* ignore */ }
+    applyStaticStrings();
+    render();
+  }
+
+  try {
+    const savedTheme = localStorage.getItem("stacklog_theme");
+    if (savedTheme === "dark" || savedTheme === "light") document.documentElement.dataset.theme = savedTheme;
+  } catch (e) { /* ignore */ }
+  applyStaticStrings();
+  themeBtn.addEventListener("click", toggleTheme);
+  langBtn.addEventListener("click", toggleLang);
+
   const PALETTE = ["#5fb3a8", "#d9a15b", "#cf8a94", "#7fa8d9", "#b78fd9", "#9ccf6e", "#e0c45f", "#8b958f"];
 
   const categoriesRoot = document.getElementById("categoriesRoot");
@@ -211,6 +399,23 @@
     saveExpanded();
   }
 
+  function loadCategoryCollapsed() {
+    try { return new Set(JSON.parse(localStorage.getItem("stacklog_category_collapsed") || "[]")); }
+    catch (e) { return new Set(); }
+  }
+  function saveCategoryCollapsed() {
+    try { localStorage.setItem("stacklog_category_collapsed", JSON.stringify([...categoryCollapsedIds])); }
+    catch (e) { /* private window or storage blocked, ignore */ }
+  }
+  const categoryCollapsedIds = loadCategoryCollapsed();
+
+  function toggleCategorySection(sectionEl, categoryId) {
+    const isCollapsed = categoryCollapsedIds.has(categoryId);
+    if (isCollapsed) categoryCollapsedIds.delete(categoryId); else categoryCollapsedIds.add(categoryId);
+    sectionEl.classList.toggle("expanded", isCollapsed);
+    saveCategoryCollapsed();
+  }
+
   function tasksFor(projectId) { return tasks.filter(t => t.project_id === projectId); }
   function projectsFor(categoryId) { return projects.filter(p => (p.category_id || null) === categoryId); }
 
@@ -221,12 +426,12 @@
     runningTotals = { done: 0, all: 0 };
 
     const sections = categories.map(c => ({ id: c.id, name: c.name, editable: true }));
-    sections.push({ id: UNCATEGORIZED, name: "Sem categoria", editable: false });
+    sections.push({ id: UNCATEGORIZED, name: t("uncategorized"), editable: false });
 
     if (projects.length === 0 && categories.length === 0) {
       const empty = document.createElement("div");
       empty.className = "empty";
-      empty.textContent = "Nenhuma categoria ainda. Use \"Nova categoria\" abaixo pra criar a primeira (ex: pessoal, trabalho, textos).";
+      empty.textContent = t("noCategoriesYet", { btn: t("addCategory") });
       categoriesRoot.appendChild(empty);
     }
 
@@ -243,16 +448,28 @@
     if (list.length === 0 && section.id === UNCATEGORIZED && categories.length > 0) return; // hide empty "no category" once real categories exist
 
     const sectionEl = document.createElement("div");
-    sectionEl.className = "category-section";
+    sectionEl.className = "category-section" + (categoryCollapsedIds.has(section.id) ? "" : " expanded");
 
     const head = document.createElement("div");
     head.className = "category-head";
+    head.addEventListener("click", e => {
+      if (e.target.closest(".iconbtn, .addinline") || e.target.isContentEditable) return;
+      toggleCategorySection(sectionEl, section.id);
+    });
+
+    const chevron = document.createElement("button");
+    chevron.className = "chevron";
+    chevron.type = "button";
+    chevron.title = t("showHideCategory");
+    chevron.setAttribute("aria-label", t("showHideCategory"));
+    chevron.textContent = "▸";
+    head.appendChild(chevron);
 
     const h2 = document.createElement("h2");
     h2.textContent = section.name;
     if (section.editable) {
       h2.contentEditable = "false";
-      h2.title = "clique duas vezes pra renomear";
+      h2.title = t("renameHint");
       h2.addEventListener("dblclick", () => { h2.contentEditable = "true"; h2.focus(); });
       h2.addEventListener("blur", () => {
         h2.contentEditable = "false";
@@ -274,10 +491,10 @@
     if (section.editable) {
       const delBtn = document.createElement("button");
       delBtn.className = "iconbtn";
-      delBtn.title = "excluir categoria (projetos viram sem categoria)";
+      delBtn.title = t("deleteCategoryTitle");
       delBtn.textContent = "✕";
       delBtn.addEventListener("click", () => {
-        if (confirm(`Excluir a categoria "${section.name}"? Os projetos dentro dela ficam sem categoria, nada é apagado.`)) {
+        if (confirm(t("confirmDeleteCategory", { name: section.name }))) {
           deleteCategory(section.id);
         }
       });
@@ -287,11 +504,33 @@
     const addInline = document.createElement("button");
     addInline.type = "button";
     addInline.className = "addinline";
-    addInline.textContent = "+ novo projeto";
+    addInline.textContent = t("addProjectInline");
     addInline.addEventListener("click", () => openInlineProjectForm(sectionEl, section.id));
     head.appendChild(addInline);
 
     sectionEl.appendChild(head);
+
+    const catDone = list.reduce((sum, p) => sum + tasksFor(p.id).filter(t => t.done).length, 0);
+    const catAll = list.reduce((sum, p) => sum + tasksFor(p.id).length, 0);
+    const prog = document.createElement("div");
+    prog.className = "category-progress";
+    const progTrack = document.createElement("div");
+    progTrack.className = "track";
+    const progBar = document.createElement("span");
+    progBar.style.width = (catAll ? Math.round(catDone / catAll * 100) : 0) + "%";
+    progTrack.appendChild(progBar);
+    const progCount = document.createElement("span");
+    progCount.className = "count mono";
+    progCount.textContent = `${catDone}/${catAll}`;
+    prog.appendChild(progTrack);
+    prog.appendChild(progCount);
+    sectionEl.appendChild(prog);
+
+    const body = document.createElement("div");
+    body.className = "category-body";
+    const bodyInner = document.createElement("div");
+    bodyInner.className = "category-body-inner";
+    body.appendChild(bodyInner);
 
     const panelsEl = document.createElement("div");
     panelsEl.className = "panels";
@@ -312,12 +551,13 @@
       if (!srcId) return;
       moveProjectToCategory(srcId, section.id);
     });
-    sectionEl.appendChild(panelsEl);
+    bodyInner.appendChild(panelsEl);
+    sectionEl.appendChild(body);
 
     if (list.length === 0) {
       const empty = document.createElement("div");
       empty.className = "empty";
-      empty.textContent = "Nenhum projeto aqui ainda. Arraste um card pra cá ou use \"+ novo projeto\".";
+      empty.textContent = t("noProjectsYet", { btn: t("addProjectInline") });
       panelsEl.appendChild(empty);
     }
 
@@ -326,12 +566,17 @@
   }
 
   function openInlineProjectForm(sectionEl, categoryId) {
+    if (!sectionEl.classList.contains("expanded")) toggleCategorySection(sectionEl, categoryId);
     const existing = sectionEl.querySelector(".newproject");
     if (existing) { existing.open = true; existing.querySelector("input").focus(); return; }
 
     const node = projectFormTemplate.content.cloneNode(true);
     const details = node.querySelector("details");
     const form = node.querySelector("form");
+    node.querySelector("summary").textContent = t("newProject");
+    node.querySelector(".npName").placeholder = t("projectNamePlaceholder");
+    node.querySelector(".npTag").placeholder = t("projectTagPlaceholder");
+    node.querySelector("button[type=submit]").textContent = t("createProject");
     const swatchesHost = node.querySelector(".swatches");
     let localColor = PALETTE[0];
     PALETTE.forEach((hex, i) => {
@@ -353,7 +598,7 @@
       createProject(name, tag, localColor, categoryId);
       details.remove();
     });
-    sectionEl.insertBefore(node, sectionEl.querySelector(".panels"));
+    sectionEl.insertBefore(node, sectionEl.querySelector(".category-body"));
     sectionEl.querySelector(".newproject").open = true;
     sectionEl.querySelector(".npName").focus();
   }
@@ -373,7 +618,7 @@
 
       const handle = document.createElement("span");
       handle.className = "draghandle";
-      handle.title = "arrastar para reordenar";
+      handle.title = t("dragToReorder");
       handle.setAttribute("aria-hidden", "true");
       handle.textContent = "⠿";
       handle.draggable = true;
@@ -411,14 +656,14 @@
       const chevron = document.createElement("button");
       chevron.className = "chevron";
       chevron.type = "button";
-      chevron.title = "mostrar/esconder tarefas";
-      chevron.setAttribute("aria-label", "mostrar/esconder tarefas");
+      chevron.title = t("showHideTasks");
+      chevron.setAttribute("aria-label", t("showHideTasks"));
       chevron.textContent = "▸";
 
       const h2 = document.createElement("h2");
       h2.textContent = p.name;
       h2.contentEditable = "false";
-      h2.title = "clique duas vezes pra renomear";
+      h2.title = t("renameHint");
       h2.addEventListener("dblclick", () => { h2.contentEditable = "true"; h2.focus(); });
       h2.addEventListener("blur", () => {
         h2.contentEditable = "false";
@@ -430,22 +675,22 @@
 
       const chip = document.createElement("span");
       chip.className = "chip mono";
-      chip.textContent = p.tag || "sem tag";
+      chip.textContent = p.tag || t("noTag");
       chip.contentEditable = "false";
       chip.addEventListener("dblclick", () => { chip.contentEditable = "true"; chip.focus(); });
       chip.addEventListener("blur", () => {
         chip.contentEditable = "false";
         const v = chip.textContent.trim();
-        if (v !== (p.tag || "sem tag")) { p.tag = v === "sem tag" ? "" : v; updateProject(p.id, { tag: p.tag }); }
-        chip.textContent = p.tag || "sem tag";
+        if (v !== (p.tag || t("noTag"))) { p.tag = v === t("noTag") ? "" : v; updateProject(p.id, { tag: p.tag }); }
+        chip.textContent = p.tag || t("noTag");
       });
 
       const delBtn = document.createElement("button");
       delBtn.className = "iconbtn";
-      delBtn.title = "excluir projeto";
+      delBtn.title = t("deleteProjectTitle");
       delBtn.textContent = "✕";
       delBtn.addEventListener("click", () => {
-        if (confirm(`Excluir o projeto "${p.name}" e todas as suas tarefas?`)) deleteProject(p.id);
+        if (confirm(t("confirmDeleteProject", { name: p.name }))) deleteProject(p.id);
       });
 
       head.appendChild(handle);
@@ -477,7 +722,7 @@
       if (list.length === 0) {
         const empty = document.createElement("div");
         empty.className = "empty";
-        empty.textContent = "Nada pendente ainda. Adicione o primeiro item abaixo.";
+        empty.textContent = t("noTasksYet");
         bodyInner.appendChild(empty);
       } else {
         const doneCount = list.filter(t => t.done).length;
@@ -488,18 +733,18 @@
 
         const ul = document.createElement("ul");
         ul.className = "tasks";
-        list.forEach(t => {
+        list.forEach(task => {
           const li = document.createElement("li");
-          li.className = "task" + (t.done ? " done" : "");
-          const cbId = "cb-" + t.id;
+          li.className = "task" + (task.done ? " done" : "");
+          const cbId = "cb-" + task.id;
           li.innerHTML = `
-            <input type="checkbox" id="${cbId}" ${t.done ? "checked" : ""}>
+            <input type="checkbox" id="${cbId}" ${task.done ? "checked" : ""}>
             <label for="${cbId}"></label>
-            <button class="del" title="remover" aria-label="remover item">✕</button>
+            <button class="del" title="${t("removeTask")}" aria-label="${t("removeItem")}">✕</button>
           `;
-          li.querySelector("label").textContent = t.title;
-          li.querySelector("input").addEventListener("change", e => toggleTask(t.id, e.target.checked));
-          li.querySelector(".del").addEventListener("click", () => deleteTask(t.id));
+          li.querySelector("label").textContent = task.title;
+          li.querySelector("input").addEventListener("change", e => toggleTask(task.id, e.target.checked));
+          li.querySelector(".del").addEventListener("click", () => deleteTask(task.id));
           ul.appendChild(li);
         });
         bodyInner.appendChild(ul);
@@ -508,8 +753,8 @@
       const addrow = document.createElement("div");
       addrow.className = "addrow";
       addrow.innerHTML = `
-        <input type="text" placeholder="novo item pendente..." aria-label="novo item para ${p.name}">
-        <button type="button">adicionar</button>
+        <input type="text" placeholder="${t("newTaskPlaceholder")}" aria-label="${t("newTaskAriaLabel", { name: p.name })}">
+        <button type="button">${t("addTask")}</button>
       `;
       const input = addrow.querySelector("input");
       const addBtn = addrow.querySelector("button");
@@ -651,15 +896,38 @@
     await fetch(`/api/categories/${encodeURIComponent(id)}`, { method: "DELETE" });
   }
 
-  document.getElementById("newCategoryForm").addEventListener("submit", e => {
-    e.preventDefault();
-    const input = document.getElementById("ncName");
-    const name = input.value.trim();
-    if (!name) return;
-    createCategory(name);
-    e.target.reset();
-    document.querySelector("body > .newproject").open = false;
-  });
+  const newCategoryFormTemplate = document.getElementById("newCategoryFormTemplate");
+  const newCategoryHost = document.getElementById("newCategoryHost");
+  const newCategoryBtn = document.getElementById("newCategoryBtn");
+
+  function openNewCategoryForm() {
+    const existing = newCategoryHost.querySelector("form");
+    if (existing) { existing.querySelector(".ncName").focus(); return; }
+
+    const node = newCategoryFormTemplate.content.cloneNode(true);
+    const form = node.querySelector("form");
+    node.querySelector(".ncName").placeholder = t("newCategoryPlaceholder");
+    node.querySelector("button[type=submit]").textContent = t("createCategory");
+    newCategoryBtn.style.display = "none";
+    newCategoryHost.appendChild(node);
+    const input = newCategoryHost.querySelector(".ncName");
+    input.focus();
+
+    const close = () => {
+      const f = newCategoryHost.querySelector("form");
+      if (f) f.remove();
+      newCategoryBtn.style.display = "";
+    };
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+      const name = input.value.trim();
+      if (!name) return;
+      createCategory(name);
+      close();
+    });
+    input.addEventListener("keydown", e => { if (e.key === "Escape") close(); });
+  }
+  newCategoryBtn.addEventListener("click", openNewCategoryForm);
 
   loadAll();
 })();

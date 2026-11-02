@@ -22,10 +22,18 @@ combined, so a quick glance tells you where things stand.
 - Pick an accent color per project from a built-in palette
 - Add an optional tag per project (for example "alpha", "in production",
   "firmware")
+- Group projects into user-created categories, drag and drop a project card
+  onto another category to move it
+- Collapse and expand project cards, drag a card's handle to reorder it
+  within a category
 - Add, check off, and delete tasks per project
-- Overall and per-project progress bars
+- Overall and per-category and per-project progress bars
 - Data persists in SQLite, a single file you can back up or copy
-- Dark and light theme, follows the system setting
+- Dark and light theme, follows the system setting by default, with a
+  toggle button to override it
+- Portuguese and English UI, detected from the browser's language, with
+  a toggle button to override it (falls back to English for any other
+  language)
 - Ships with a demo project so the page is never empty on first run
 
 ## Quick start
@@ -105,12 +113,29 @@ only over a private network or VPN (Tailscale, WireGuard).
 
 ## Using Stacklog
 
-- **New project**: click "Novo projeto" / "New project" at the bottom of
-  the page, pick a name, an optional tag, and an accent color.
-- **Rename**: double-click a project's name or tag to edit it in place,
-  press Enter or click away to save.
+- **Theme and language**: the two `◈` buttons at the top right switch
+  between dark/light theme and Portuguese/English. Your choice is
+  remembered in the browser; until you click them, Stacklog follows your
+  system's color scheme and your browser's language (English for any
+  language other than Portuguese).
+- **New category**: open "+ Nova categoria" / "+ New category" at the
+  bottom of the page and give it a name. Projects with no category land in
+  an always-available "Sem categoria" / "Uncategorized" bucket.
+- **New project**: each category has its own "+ novo projeto" trigger;
+  pick a name, an optional tag, and an accent color.
+- **Rename**: double-click a project's name or tag, or a category's
+  heading, to edit it in place. Press Enter or click away to save.
+- **Reorder or move a project**: drag a project card by its handle (⠿) to
+  reorder it within a category, or drop it onto a different category's
+  section to move it there.
+- **Delete a category**: click the small "x" next to its heading. Its
+  projects become uncategorized, they are not deleted. You will be asked
+  to confirm.
 - **Delete a project**: click the small "x" next to the project's tag.
   This also deletes all of its tasks. You will be asked to confirm.
+- **Collapse/expand**: click a project card's header to collapse it to
+  just the progress bar, or expand it back. This is remembered per
+  project in your browser.
 - **Tasks**: type into the input at the bottom of a project's card and
   press Enter, or click "adicionar" / "add". Click a checkbox to mark a
   task done, click the "x" next to a task to remove it.
@@ -137,9 +162,13 @@ All endpoints are plain JSON over HTTP, no authentication.
 
 | Method | Path | Body | Description |
 |---|---|---|---|
+| GET | `/api/categories` | | List all categories |
+| POST | `/api/categories` | `{name}` | Create a category |
+| PATCH | `/api/categories/<id>` | `{name?, order_index?}` | Update a category |
+| DELETE | `/api/categories/<id>` | | Delete a category, uncategorizing its projects |
 | GET | `/api/projects` | | List all projects |
-| POST | `/api/projects` | `{name, color, tag}` | Create a project |
-| PATCH | `/api/projects/<id>` | `{name?, color?, tag?}` | Update a project |
+| POST | `/api/projects` | `{name, color, tag, category_id?}` | Create a project |
+| PATCH | `/api/projects/<id>` | `{name?, color?, tag?, order_index?, category_id?}` | Update a project |
 | DELETE | `/api/projects/<id>` | | Delete a project and its tasks |
 | GET | `/api/tasks` | | List all tasks |
 | POST | `/api/tasks` | `{project_id, title}` | Create a task |
