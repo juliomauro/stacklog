@@ -1,0 +1,20 @@
+name: backlog-projects
+
+x-casaos:
+  title:
+    en_us: Backlog Projects
+    pt_br: Backlog Projects
+
+services:
+  stacklog:
+    build: ./app
+    image: stacklog:latest
+    container_name: stacklog
+    restart: unless-stopped
+    ports:
+      - "4100:8080"
+    volumes:
+      - stacklog_data:/data
+
+volumes:
+  stacklog_data:

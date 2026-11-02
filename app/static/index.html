@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stacklog</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Public+Sans:wght@400;600;800&display=swap">
+<style>
+  :root {
+    --bg: #eef0ee; --surface: #ffffff; --surface-2: #e4e7e3; --border: #cfd4cd;
+    --fg: #1c201d; --fg-dim: #5c655d; --ok: #3f7d4a; --danger: #a8485a;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #13171a; --surface: #1b2024; --surface-2: #20262b; --border: #2d3540;
+      --fg: #eef1f0; --fg-dim: #8b958f; --ok: #6cc77f; --danger: #cf8a94;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #13171a; --surface: #1b2024; --surface-2: #20262b; --border: #2d3540;
+    --fg: #eef1f0; --fg-dim: #8b958f; --ok: #6cc77f; --danger: #cf8a94;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: "Public Sans", -apple-system, "Segoe UI", sans-serif;
+    padding: 28px 16px; display: flex; flex-direction: column; gap: 22px;
+    max-width: 1280px; margin: 0 auto;
+  }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+  h1 { text-wrap: balance; font-size: 1.7rem; font-weight: 800; margin: 0; letter-spacing: -0.01em; }
+  .topstrip { display: flex; flex-direction: column; gap: 14px; }
+  .prompt { font-size: 0.82rem; color: var(--fg-dim); display: flex; align-items: baseline; gap: 6px; }
+  .prompt .cursor { display: inline-block; width: 7px; height: 13px; background: var(--ok); animation: blink 1.1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .prompt .cursor { animation: none; } }
+  .sub { color: var(--fg-dim); font-size: 0.92rem; margin: 0; }
+
+  .summarybar { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; display: flex; flex-wrap: wrap; gap: 18px; align-items: center; }
+  .summarybar .big { font-family: "JetBrains Mono", monospace; font-size: 1.9rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+  .summarybar .biglabel { font-size: 0.72rem; color: var(--fg-dim); text-transform: uppercase; letter-spacing: 0.06em; }
+  .summarybar .track { flex: 1 1 160px; min-width: 0; height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+  .summarybar .track > span { display: block; height: 100%; background: var(--ok); border-radius: 999px; transition: width 0.4s ease; }
+
+  .panels { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); align-items: start; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; border-left: 4px solid var(--accent); }
+  .panel-head { padding: 14px 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
+  .panel-head h2 { font-size: 1.05rem; margin: 0; flex: 1 1 auto; min-width: 0; cursor: text; }
+  .panel-head h2[contenteditable="true"] { outline: 1px dashed var(--accent); border-radius: 4px; padding: 0 2px; }
+  .chip { font-family: "JetBrains Mono", monospace; font-size: 0.68rem; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--accent); white-space: nowrap; cursor: text; }
+  .chip[contenteditable="true"] { outline: 1px dashed var(--accent); }
+  .iconbtn { background: none; border: none; color: var(--fg-dim); cursor: pointer; font-size: 0.95rem; padding: 2px 4px; line-height: 1; border-radius: 6px; }
+  .iconbtn:hover { background: var(--border); color: var(--danger); }
+
+  .panel-progress { padding: 10px 18px 0; display: flex; align-items: center; gap: 10px; }
+  .panel-progress .track { flex: 1; height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; min-width: 0; }
+  .panel-progress .track > span { display: block; height: 100%; border-radius: 999px; background: var(--accent); transition: width 0.4s ease; }
+  .panel-progress .count { font-family: "JetBrains Mono", monospace; font-size: 0.75rem; color: var(--fg-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  ul.tasks { list-style: none; margin: 0; padding: 8px 10px 14px; display: flex; flex-direction: column; }
+  .task { display: flex; align-items: flex-start; gap: 10px; padding: 9px 8px; border-radius: 8px; }
+  .task:hover { background: var(--surface-2); }
+  .task input[type="checkbox"] {
+    appearance: none; width: 18px; height: 18px; min-width: 18px; margin-top: 1px;
+    border: 1.5px solid var(--border); border-radius: 5px; cursor: pointer; position: relative; background: var(--surface);
+  }
+  .task input[type="checkbox"]:checked { background: var(--ok); border-color: var(--ok); }
+  .task input[type="checkbox"]:checked::after {
+    content: ""; position: absolute; left: 5px; top: 1px; width: 5px; height: 9px;
+    border: solid var(--surface); border-width: 0 2px 2px 0; transform: rotate(40deg);
+  }
+  .task label { flex: 1; min-width: 0; font-size: 0.92rem; line-height: 1.4; cursor: pointer; }
+  .task.done label { color: var(--fg-dim); text-decoration: line-through; text-decoration-color: var(--border); }
+  .task .del { background: none; border: none; color: var(--fg-dim); cursor: pointer; font-size: 0.95rem; padding: 0 4px; line-height: 1.4; opacity: 0; transition: opacity 0.15s; }
+  .task:hover .del { opacity: 1; }
+  .task .del:hover { color: var(--danger); }
+
+  .addrow { display: flex; gap: 8px; padding: 4px 18px 16px; }
+  .addrow input[type="text"] { flex: 1; min-width: 0; background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; color: var(--fg); font-size: 0.88rem; }
+  .addrow input[type="text"]:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .addrow button { background: var(--accent); color: #fff; border: none; border-radius: 7px; padding: 8px 14px; font-size: 0.85rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .addrow button:active { transform: translateY(1px); }
+
+  .empty { padding: 18px; color: var(--fg-dim); font-size: 0.88rem; }
+
+  .newproject { background: var(--surface); border: 1px dashed var(--border); border-radius: 12px; padding: 16px 18px; }
+  .newproject summary { cursor: pointer; font-weight: 700; font-size: 0.92rem; list-style: none; display: flex; align-items: center; gap: 6px; }
+  .newproject summary::-webkit-details-marker { display: none; }
+  .newproject summary::before { content: "+"; font-size: 1.1rem; }
+  .newproject[open] summary::before { content: "-"; }
+  .newform { display: flex; flex-direction: column; gap: 12px; padding-top: 14px; }
+  .newform input[type="text"] { background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px; padding: 9px 11px; color: var(--fg); font-size: 0.9rem; }
+  .swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+  .swatch { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
+  .swatch.selected { border-color: var(--fg); }
+  .newform button[type="submit"] { align-self: flex-start; background: var(--ok); color: #fff; border: none; border-radius: 7px; padding: 9px 18px; font-size: 0.88rem; font-weight: 700; cursor: pointer; }
+
+  footer { text-align: center; color: var(--fg-dim); font-size: 0.78rem; padding-top: 6px; }
+  footer a { color: var(--fg-dim); }
+</style>
+</head>
+<body>
+
+<div class="topstrip">
+  <div class="prompt mono">$ stacklog status<span class="cursor"></span></div>
+  <h1>Stacklog</h1>
+  <p class="sub">backlog self-hosted pra projetos de verdade — o que tem e o que falta, num lugar só.</p>
+</div>
+
+<div class="summarybar" id="summarybar">
+  <div>
+    <div class="big mono" id="overallCount">–</div>
+    <div class="biglabel">concluídas</div>
+  </div>
+  <div class="track"><span id="overallTrack" style="width:0%"></span></div>
+  <div class="biglabel mono" id="overallPct">–</div>
+</div>
+
+<div class="panels" id="panels"></div>
+
+<details class="newproject">
+  <summary>Novo projeto</summary>
+  <form class="newform" id="newProjectForm">
+    <input type="text" id="npName" placeholder="nome do projeto" required>
+    <input type="text" id="npTag" placeholder="tag (opcional, ex: alpha, em produção)">
+    <div class="swatches" id="npSwatches"></div>
+    <button type="submit">criar projeto</button>
+  </form>
+</details>
+
+<footer>
+  self-hosted · dados em /data/stacklog.db · <a href="https://github.com/juliomauro/stacklog" target="_blank" rel="noopener">github.com/juliomauro/stacklog</a>
+</footer>
+
+<script>
+(function () {
+  const PALETTE = ["#5fb3a8", "#d9a15b", "#cf8a94", "#7fa8d9", "#b78fd9", "#9ccf6e", "#e0c45f", "#8b958f"];
+
+  const panelsEl = document.getElementById("panels");
+  let projects = [];
+  let tasks = [];
+  let selectedColor = PALETTE[0];
+
+  function tasksFor(projectId) { return tasks.filter(t => t.project_id === projectId); }
+
+  function render() {
+    panelsEl.innerHTML = "";
+    let totalDone = 0, totalAll = 0;
+
+    if (projects.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "Nenhum projeto ainda. Use \"Novo projeto\" abaixo pra criar o primeiro.";
+      panelsEl.appendChild(empty);
+    }
+
+    projects.forEach(p => {
+      const list = tasksFor(p.id);
+      const panel = document.createElement("div");
+      panel.className = "panel";
+      panel.style.setProperty("--accent", p.color || PALETTE[0]);
+
+      const head = document.createElement("div");
+      head.className = "panel-head";
+
+      const h2 = document.createElement("h2");
+      h2.textContent = p.name;
+      h2.contentEditable = "false";
+      h2.title = "clique duas vezes pra renomear";
+      h2.addEventListener("dblclick", () => { h2.contentEditable = "true"; h2.focus(); });
+      h2.addEventListener("blur", () => {
+        h2.contentEditable = "false";
+        const v = h2.textContent.trim();
+        if (v && v !== p.name) { p.name = v; updateProject(p.id, { name: v }); }
+        else h2.textContent = p.name;
+      });
+      h2.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); h2.blur(); } });
+
+      const chip = document.createElement("span");
+      chip.className = "chip mono";
+      chip.textContent = p.tag || "sem tag";
+      chip.contentEditable = "false";
+      chip.addEventListener("dblclick", () => { chip.contentEditable = "true"; chip.focus(); });
+      chip.addEventListener("blur", () => {
+        chip.contentEditable = "false";
+        const v = chip.textContent.trim();
+        if (v !== (p.tag || "sem tag")) { p.tag = v === "sem tag" ? "" : v; updateProject(p.id, { tag: p.tag }); }
+        chip.textContent = p.tag || "sem tag";
+      });
+
+      const delBtn = document.createElement("button");
+      delBtn.className = "iconbtn";
+      delBtn.title = "excluir projeto";
+      delBtn.textContent = "✕";
+      delBtn.addEventListener("click", () => {
+        if (confirm(`Excluir o projeto "${p.name}" e todas as suas tarefas?`)) deleteProject(p.id);
+      });
+
+      head.appendChild(h2);
+      head.appendChild(chip);
+      head.appendChild(delBtn);
+      panel.appendChild(head);
+
+      const progWrap = document.createElement("div");
+      progWrap.className = "panel-progress";
+      const track = document.createElement("div");
+      track.className = "track";
+      const bar = document.createElement("span");
+      track.appendChild(bar);
+      const count = document.createElement("div");
+      count.className = "count";
+      progWrap.appendChild(track);
+      progWrap.appendChild(count);
+      panel.appendChild(progWrap);
+
+      if (list.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "Nada pendente ainda. Adicione o primeiro item abaixo.";
+        panel.appendChild(empty);
+      } else {
+        const doneCount = list.filter(t => t.done).length;
+        bar.style.width = (doneCount / list.length * 100) + "%";
+        count.textContent = `${doneCount}/${list.length}`;
+        totalDone += doneCount;
+        totalAll += list.length;
+
+        const ul = document.createElement("ul");
+        ul.className = "tasks";
+        list.forEach(t => {
+          const li = document.createElement("li");
+          li.className = "task" + (t.done ? " done" : "");
+          const cbId = "cb-" + t.id;
+          li.innerHTML = `
+            <input type="checkbox" id="${cbId}" ${t.done ? "checked" : ""}>
+            <label for="${cbId}"></label>
+            <button class="del" title="remover" aria-label="remover item">✕</button>
+          `;
+          li.querySelector("label").textContent = t.title;
+          li.querySelector("input").addEventListener("change", e => toggleTask(t.id, e.target.checked));
+          li.querySelector(".del").addEventListener("click", () => deleteTask(t.id));
+          ul.appendChild(li);
+        });
+        panel.appendChild(ul);
+      }
+
+      const addrow = document.createElement("div");
+      addrow.className = "addrow";
+      addrow.innerHTML = `
+        <input type="text" placeholder="novo item pendente..." aria-label="novo item para ${p.name}">
+        <button type="button">adicionar</button>
+      `;
+      const input = addrow.querySelector("input");
+      const addBtn = addrow.querySelector("button");
+      const submit = () => {
+        const v = input.value.trim();
+        if (!v) return;
+        addTask(p.id, v);
+        input.value = "";
+      };
+      addBtn.addEventListener("click", submit);
+      input.addEventListener("keydown", e => { if (e.key === "Enter") submit(); });
+      panel.appendChild(addrow);
+
+      panelsEl.appendChild(panel);
+    });
+
+    const overallPct = totalAll ? Math.round(totalDone / totalAll * 100) : 0;
+    document.getElementById("overallCount").textContent = `${totalDone}/${totalAll}`;
+    document.getElementById("overallTrack").style.width = overallPct + "%";
+    document.getElementById("overallPct").textContent = overallPct + "%";
+  }
+
+  async function loadAll() {
+    const [pr, tr] = await Promise.all([fetch("/api/projects"), fetch("/api/tasks")]);
+    projects = await pr.json();
+    tasks = await tr.json();
+    render();
+  }
+
+  async function toggleTask(id, done) {
+    const t = tasks.find(x => x.id === id);
+    if (t) t.done = done;
+    render();
+    await fetch(`/api/tasks/${encodeURIComponent(id)}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ done })
+    });
+  }
+
+  async function deleteTask(id) {
+    tasks = tasks.filter(x => x.id !== id);
+    render();
+    await fetch(`/api/tasks/${encodeURIComponent(id)}`, { method: "DELETE" });
+  }
+
+  async function addTask(projectId, title) {
+    const res = await fetch("/api/tasks", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ project_id: projectId, title })
+    });
+    const created = await res.json();
+    tasks.push(created);
+    render();
+  }
+
+  async function updateProject(id, patch) {
+    await fetch(`/api/projects/${encodeURIComponent(id)}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch)
+    });
+  }
+
+  async function deleteProject(id) {
+    projects = projects.filter(p => p.id !== id);
+    tasks = tasks.filter(t => t.project_id !== id);
+    render();
+    await fetch(`/api/projects/${encodeURIComponent(id)}`, { method: "DELETE" });
+  }
+
+  async function createProject(name, tag, color) {
+    const res = await fetch("/api/projects", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, tag, color })
+    });
+    const created = await res.json();
+    projects.push(created);
+    render();
+  }
+
+  const swatchesEl = document.getElementById("npSwatches");
+  PALETTE.forEach((hex, i) => {
+    const sw = document.createElement("div");
+    sw.className = "swatch" + (i === 0 ? " selected" : "");
+    sw.style.background = hex;
+    sw.addEventListener("click", () => {
+      selectedColor = hex;
+      swatchesEl.querySelectorAll(".swatch").forEach(s => s.classList.remove("selected"));
+      sw.classList.add("selected");
+    });
+    swatchesEl.appendChild(sw);
+  });
+
+  document.getElementById("newProjectForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const name = document.getElementById("npName").value.trim();
+    const tag = document.getElementById("npTag").value.trim();
+    if (!name) return;
+    createProject(name, tag, selectedColor);
+    e.target.reset();
+    swatchesEl.querySelectorAll(".swatch").forEach((s, i) => s.classList.toggle("selected", i === 0));
+    selectedColor = PALETTE[0];
+    document.querySelector(".newproject").open = false;
+  });
+
+  loadAll();
+})();
+</script>
+</body>
+</html>
