@@ -34,22 +34,35 @@ def init_db():
     conn = sqlite3.connect(DB_PATH)
     conn.execute(
         """
+        CREATE TABLE IF NOT EXISTS categories (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            order_index INTEGER NOT NULL DEFAULT 0,
+            created_at INTEGER NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
         CREATE TABLE IF NOT EXISTS projects (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             color TEXT NOT NULL DEFAULT '#5fb3a8',
             tag TEXT NOT NULL DEFAULT '',
             created_at INTEGER NOT NULL,
-            order_index INTEGER NOT NULL DEFAULT 0
+            order_index INTEGER NOT NULL DEFAULT 0,
+            category_id TEXT
         )
         """
     )
-    # migration: add order_index to a projects table created before this column existed
+    # migrations: columns added to a projects table created before they existed
     existing_cols = {row[1] for row in conn.execute("PRAGMA table_info(projects)")}
     if "order_index" not in existing_cols:
         conn.execute("ALTER TABLE projects ADD COLUMN order_index INTEGER NOT NULL DEFAULT 0")
         for i, row in enumerate(conn.execute("SELECT id FROM projects ORDER BY created_at ASC")):
             conn.execute("UPDATE projects SET order_index = ? WHERE id = ?", (i, row[0]))
+    if "category_id" not in existing_cols:
+        conn.execute("ALTER TABLE projects ADD COLUMN category_id TEXT")
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS tasks (
@@ -85,6 +98,68 @@ def init_db():
     conn.close()
 
 
+# ---------- categories ----------
+
+@app.get("/api/categories")
+def list_categories():
+    rows = get_db().execute("SELECT * FROM categories ORDER BY order_index ASC, created_at ASC").fetchall()
+    return jsonify([dict(r) for r in rows])
+
+
+@app.post("/api/categories")
+def create_category():
+    body = request.get_json(force=True, silent=True) or {}
+    name = (body.get("name") or "").strip()
+    if not name:
+        return jsonify({"error": "name is required"}), 400
+    category_id = uuid.uuid4().hex[:12]
+    now = int(time.time() * 1000)
+    db = get_db()
+    next_order = db.execute("SELECT COALESCE(MAX(order_index), -1) + 1 FROM categories").fetchone()[0]
+    db.execute(
+        "INSERT INTO categories (id, name, order_index, created_at) VALUES (?, ?, ?, ?)",
+        (category_id, name, next_order, now),
+    )
+    db.commit()
+    return jsonify({"id": category_id, "name": name, "order_index": next_order, "created_at": now}), 201
+
+
+@app.patch("/api/categories/<category_id>")
+def update_category(category_id):
+    body = request.get_json(force=True, silent=True) or {}
+    fields, values = [], []
+    if "name" in body:
+        fields.append("name = ?")
+        values.append((body["name"] or "").strip())
+    if "order_index" in body:
+        try:
+            fields.append("order_index = ?")
+            values.append(int(body["order_index"]))
+        except (TypeError, ValueError):
+            return jsonify({"error": "order_index must be an integer"}), 400
+    if not fields:
+        return jsonify({"error": "nothing to update"}), 400
+    values.append(category_id)
+    db = get_db()
+    cur = db.execute(f"UPDATE categories SET {', '.join(fields)} WHERE id = ?", values)
+    db.commit()
+    if cur.rowcount == 0:
+        return jsonify({"error": "not found"}), 404
+    return jsonify({"ok": True})
+
+
+@app.delete("/api/categories/<category_id>")
+def delete_category(category_id):
+    db = get_db()
+    # projects in a deleted category become uncategorized, never deleted
+    db.execute("UPDATE projects SET category_id = NULL WHERE category_id = ?", (category_id,))
+    cur = db.execute("DELETE FROM categories WHERE id = ?", (category_id,))
+    db.commit()
+    if cur.rowcount == 0:
+        return jsonify({"error": "not found"}), 404
+    return jsonify({"ok": True})
+
+
 # ---------- projects ----------
 
 @app.get("/api/projects")
@@ -101,16 +176,20 @@ def create_project():
         return jsonify({"error": "name is required"}), 400
     color = (body.get("color") or DEFAULT_COLOR).strip()
     tag = (body.get("tag") or "").strip()
+    category_id = body.get("category_id") or None
     project_id = uuid.uuid4().hex[:12]
     now = int(time.time() * 1000)
     db = get_db()
     next_order = db.execute("SELECT COALESCE(MAX(order_index), -1) + 1 FROM projects").fetchone()[0]
     db.execute(
-        "INSERT INTO projects (id, name, color, tag, created_at, order_index) VALUES (?, ?, ?, ?, ?, ?)",
-        (project_id, name, color, tag, now, next_order),
+        "INSERT INTO projects (id, name, color, tag, created_at, order_index, category_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (project_id, name, color, tag, now, next_order, category_id),
     )
     db.commit()
-    return jsonify({"id": project_id, "name": name, "color": color, "tag": tag, "created_at": now, "order_index": next_order}), 201
+    return jsonify({
+        "id": project_id, "name": name, "color": color, "tag": tag,
+        "created_at": now, "order_index": next_order, "category_id": category_id
+    }), 201
 
 
 @app.patch("/api/projects/<project_id>")
@@ -127,6 +206,10 @@ def update_project(project_id):
             values.append(int(body["order_index"]))
         except (TypeError, ValueError):
             return jsonify({"error": "order_index must be an integer"}), 400
+    if "category_id" in body:
+        # explicit null/empty moves the project back to "uncategorized"
+        fields.append("category_id = ?")
+        values.append(body["category_id"] or None)
     if not fields:
         return jsonify({"error": "nothing to update"}), 400
     values.append(project_id)

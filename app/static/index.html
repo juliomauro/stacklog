@@ -47,7 +47,24 @@
   .summarybar .track { flex: 1 1 160px; min-width: 0; height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
   .summarybar .track > span { display: block; height: 100%; background: var(--ok); border-radius: 999px; transition: width 0.4s ease; }
 
-  .panels { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); align-items: start; }
+  .category-section { display: flex; flex-direction: column; gap: 12px; }
+  .category-section.drag-over-section > .panels { outline: 2px dashed var(--fg-dim); outline-offset: 4px; border-radius: 12px; }
+  .category-head { display: flex; align-items: center; gap: 10px; }
+  .category-head h2 {
+    font-size: 0.78rem; margin: 0; text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--fg-dim); font-weight: 700; cursor: text;
+  }
+  .category-head h2[contenteditable="true"] { outline: 1px dashed var(--fg-dim); border-radius: 4px; padding: 0 2px; color: var(--fg); }
+  .category-head .catcount { font-family: "JetBrains Mono", monospace; font-size: 0.72rem; color: var(--fg-dim); }
+  .category-head .addinline {
+    background: none; border: 1px dashed var(--border); color: var(--fg-dim); cursor: pointer;
+    font-size: 0.72rem; border-radius: 999px; padding: 2px 10px; margin-left: auto;
+  }
+  .category-head .addinline:hover { border-color: var(--fg-dim); color: var(--fg); }
+  .category-head .iconbtn { opacity: 0; transition: opacity 0.15s; }
+  .category-head:hover .iconbtn { opacity: 1; }
+
+  .panels { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); align-items: start; min-height: 12px; }
   .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; border-left: 4px solid var(--accent); }
   .panel-head { padding: 14px 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; border-bottom: 1px solid var(--border); background: var(--surface-2); cursor: pointer; }
   .chevron { background: none; border: none; color: var(--fg-dim); cursor: pointer; font-size: 0.8rem; padding: 2px 4px; line-height: 1; border-radius: 6px; transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
@@ -139,17 +156,27 @@
   <div class="biglabel mono" id="overallPct">–</div>
 </div>
 
-<div class="panels" id="panels"></div>
+<div id="categoriesRoot"></div>
 
 <details class="newproject">
-  <summary>Novo projeto</summary>
-  <form class="newform" id="newProjectForm">
-    <input type="text" id="npName" placeholder="nome do projeto" required>
-    <input type="text" id="npTag" placeholder="tag (opcional, ex: alpha, em produção)">
-    <div class="swatches" id="npSwatches"></div>
-    <button type="submit">criar projeto</button>
+  <summary>Nova categoria</summary>
+  <form class="newform" id="newCategoryForm">
+    <input type="text" id="ncName" placeholder="nome da categoria (ex: pessoal, trabalho, textos)" required>
+    <button type="submit">criar categoria</button>
   </form>
 </details>
+
+<template id="newProjectFormTemplate">
+  <details class="newproject">
+    <summary>Novo projeto</summary>
+    <form class="newform">
+      <input type="text" class="npName" placeholder="nome do projeto" required>
+      <input type="text" class="npTag" placeholder="tag (opcional, ex: alpha, em produção)">
+      <div class="swatches"></div>
+      <button type="submit">criar projeto</button>
+    </form>
+  </details>
+</template>
 
 <footer>
   self-hosted · dados em /data/stacklog.db · <a href="https://github.com/juliomauro/stacklog" target="_blank" rel="noopener">github.com/juliomauro/stacklog</a>
@@ -159,11 +186,13 @@
 (function () {
   const PALETTE = ["#5fb3a8", "#d9a15b", "#cf8a94", "#7fa8d9", "#b78fd9", "#9ccf6e", "#e0c45f", "#8b958f"];
 
-  const panelsEl = document.getElementById("panels");
+  const categoriesRoot = document.getElementById("categoriesRoot");
+  const projectFormTemplate = document.getElementById("newProjectFormTemplate");
+  let categories = [];
   let projects = [];
   let tasks = [];
-  let selectedColor = PALETTE[0];
   let dragSrcId = null;
+  const UNCATEGORIZED = null; // pseudo-category id for projects with no category_id
 
   function loadExpanded() {
     try { return new Set(JSON.parse(localStorage.getItem("stacklog_expanded") || "[]")); }
@@ -183,20 +212,154 @@
   }
 
   function tasksFor(projectId) { return tasks.filter(t => t.project_id === projectId); }
+  function projectsFor(categoryId) { return projects.filter(p => (p.category_id || null) === categoryId); }
+
+  let runningTotals = { done: 0, all: 0 };
 
   function render() {
-    panelsEl.innerHTML = "";
-    let totalDone = 0, totalAll = 0;
+    categoriesRoot.innerHTML = "";
+    runningTotals = { done: 0, all: 0 };
 
-    if (projects.length === 0) {
+    const sections = categories.map(c => ({ id: c.id, name: c.name, editable: true }));
+    sections.push({ id: UNCATEGORIZED, name: "Sem categoria", editable: false });
+
+    if (projects.length === 0 && categories.length === 0) {
       const empty = document.createElement("div");
       empty.className = "empty";
-      empty.textContent = "Nenhum projeto ainda. Use \"Novo projeto\" abaixo pra criar o primeiro.";
+      empty.textContent = "Nenhuma categoria ainda. Use \"Nova categoria\" abaixo pra criar a primeira (ex: pessoal, trabalho, textos).";
+      categoriesRoot.appendChild(empty);
+    }
+
+    sections.forEach(section => buildCategorySection(section));
+
+    document.getElementById("overallCount").textContent = `${runningTotals.done}/${runningTotals.all}`;
+    const overallPct = runningTotals.all ? Math.round(runningTotals.done / runningTotals.all * 100) : 0;
+    document.getElementById("overallTrack").style.width = overallPct + "%";
+    document.getElementById("overallPct").textContent = overallPct + "%";
+  }
+
+  function buildCategorySection(section) {
+    const list = projectsFor(section.id);
+    if (list.length === 0 && section.id === UNCATEGORIZED && categories.length > 0) return; // hide empty "no category" once real categories exist
+
+    const sectionEl = document.createElement("div");
+    sectionEl.className = "category-section";
+
+    const head = document.createElement("div");
+    head.className = "category-head";
+
+    const h2 = document.createElement("h2");
+    h2.textContent = section.name;
+    if (section.editable) {
+      h2.contentEditable = "false";
+      h2.title = "clique duas vezes pra renomear";
+      h2.addEventListener("dblclick", () => { h2.contentEditable = "true"; h2.focus(); });
+      h2.addEventListener("blur", () => {
+        h2.contentEditable = "false";
+        const v = h2.textContent.trim();
+        if (v && v !== section.name) {
+          const cat = categories.find(c => c.id === section.id);
+          if (cat) { cat.name = v; updateCategory(cat.id, { name: v }); }
+        } else h2.textContent = section.name;
+      });
+      h2.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); h2.blur(); } });
+    }
+    head.appendChild(h2);
+
+    const count = document.createElement("span");
+    count.className = "catcount mono";
+    count.textContent = list.length;
+    head.appendChild(count);
+
+    if (section.editable) {
+      const delBtn = document.createElement("button");
+      delBtn.className = "iconbtn";
+      delBtn.title = "excluir categoria (projetos viram sem categoria)";
+      delBtn.textContent = "✕";
+      delBtn.addEventListener("click", () => {
+        if (confirm(`Excluir a categoria "${section.name}"? Os projetos dentro dela ficam sem categoria, nada é apagado.`)) {
+          deleteCategory(section.id);
+        }
+      });
+      head.appendChild(delBtn);
+    }
+
+    const addInline = document.createElement("button");
+    addInline.type = "button";
+    addInline.className = "addinline";
+    addInline.textContent = "+ novo projeto";
+    addInline.addEventListener("click", () => openInlineProjectForm(sectionEl, section.id));
+    head.appendChild(addInline);
+
+    sectionEl.appendChild(head);
+
+    const panelsEl = document.createElement("div");
+    panelsEl.className = "panels";
+    panelsEl.addEventListener("dragover", e => {
+      if (!dragSrcId) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      sectionEl.classList.add("drag-over-section");
+    });
+    panelsEl.addEventListener("dragleave", e => {
+      if (!panelsEl.contains(e.relatedTarget)) sectionEl.classList.remove("drag-over-section");
+    });
+    panelsEl.addEventListener("drop", e => {
+      e.preventDefault();
+      sectionEl.classList.remove("drag-over-section");
+      const srcId = dragSrcId;
+      dragSrcId = null;
+      if (!srcId) return;
+      moveProjectToCategory(srcId, section.id);
+    });
+    sectionEl.appendChild(panelsEl);
+
+    if (list.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "Nenhum projeto aqui ainda. Arraste um card pra cá ou use \"+ novo projeto\".";
       panelsEl.appendChild(empty);
     }
 
-    projects.forEach(p => {
-      const list = tasksFor(p.id);
+    list.forEach(p => buildProjectPanel(p, panelsEl));
+    categoriesRoot.appendChild(sectionEl);
+  }
+
+  function openInlineProjectForm(sectionEl, categoryId) {
+    const existing = sectionEl.querySelector(".newproject");
+    if (existing) { existing.open = true; existing.querySelector("input").focus(); return; }
+
+    const node = projectFormTemplate.content.cloneNode(true);
+    const details = node.querySelector("details");
+    const form = node.querySelector("form");
+    const swatchesHost = node.querySelector(".swatches");
+    let localColor = PALETTE[0];
+    PALETTE.forEach((hex, i) => {
+      const sw = document.createElement("div");
+      sw.className = "swatch" + (i === 0 ? " selected" : "");
+      sw.style.background = hex;
+      sw.addEventListener("click", () => {
+        localColor = hex;
+        swatchesHost.querySelectorAll(".swatch").forEach(s => s.classList.remove("selected"));
+        sw.classList.add("selected");
+      });
+      swatchesHost.appendChild(sw);
+    });
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+      const name = form.querySelector(".npName").value.trim();
+      const tag = form.querySelector(".npTag").value.trim();
+      if (!name) return;
+      createProject(name, tag, localColor, categoryId);
+      details.remove();
+    });
+    sectionEl.insertBefore(node, sectionEl.querySelector(".panels"));
+    sectionEl.querySelector(".newproject").open = true;
+    sectionEl.querySelector(".npName").focus();
+  }
+
+  function buildProjectPanel(p, panelsEl) {
+    const list = tasksFor(p.id);
       const panel = document.createElement("div");
       panel.className = "panel" + (expandedIds.has(p.id) ? " expanded" : "");
       panel.style.setProperty("--accent", p.color || PALETTE[0]);
@@ -230,12 +393,14 @@
       panel.addEventListener("dragover", e => {
         if (!dragSrcId || dragSrcId === p.id) return;
         e.preventDefault();
+        e.stopPropagation(); // don't also trigger the category section's own dragover
         e.dataTransfer.dropEffect = "move";
         panel.classList.add("drag-over");
       });
       panel.addEventListener("dragleave", () => panel.classList.remove("drag-over"));
       panel.addEventListener("drop", e => {
         e.preventDefault();
+        e.stopPropagation(); // don't also trigger the category section's own drop
         panel.classList.remove("drag-over");
         const srcId = dragSrcId;
         dragSrcId = null;
@@ -318,8 +483,8 @@
         const doneCount = list.filter(t => t.done).length;
         bar.style.width = (doneCount / list.length * 100) + "%";
         count.textContent = `${doneCount}/${list.length}`;
-        totalDone += doneCount;
-        totalAll += list.length;
+        runningTotals.done += doneCount;
+        runningTotals.all += list.length;
 
         const ul = document.createElement("ul");
         ul.className = "tasks";
@@ -360,16 +525,11 @@
 
       panel.appendChild(body);
       panelsEl.appendChild(panel);
-    });
-
-    const overallPct = totalAll ? Math.round(totalDone / totalAll * 100) : 0;
-    document.getElementById("overallCount").textContent = `${totalDone}/${totalAll}`;
-    document.getElementById("overallTrack").style.width = overallPct + "%";
-    document.getElementById("overallPct").textContent = overallPct + "%";
   }
 
   async function loadAll() {
-    const [pr, tr] = await Promise.all([fetch("/api/projects"), fetch("/api/tasks")]);
+    const [cr, pr, tr] = await Promise.all([fetch("/api/categories"), fetch("/api/projects"), fetch("/api/tasks")]);
+    categories = await cr.json();
     projects = await pr.json();
     tasks = await tr.json();
     render();
@@ -414,23 +574,53 @@
   }
 
   async function reorderProjects(srcId, targetId) {
-    const srcIdx = projects.findIndex(x => x.id === srcId);
-    const tgtIdx = projects.findIndex(x => x.id === targetId);
-    if (srcIdx === -1 || tgtIdx === -1 || srcIdx === tgtIdx) return;
-    const [moved] = projects.splice(srcIdx, 1);
-    projects.splice(tgtIdx, 0, moved);
+    const srcProj = projects.find(x => x.id === srcId);
+    const tgtProj = projects.find(x => x.id === targetId);
+    if (!srcProj || !tgtProj || srcId === targetId) return;
+
+    const srcIdx = projects.indexOf(srcProj);
+    const tgtIdx = projects.indexOf(tgtProj);
+    const changingCategory = (srcProj.category_id || null) !== (tgtProj.category_id || null);
+    if (changingCategory) srcProj.category_id = tgtProj.category_id || null;
+
+    projects.splice(srcIdx, 1);
+    const newTgtIdx = projects.indexOf(tgtProj);
+    projects.splice(newTgtIdx, 0, srcProj);
     render();
-    await Promise.all(projects.map((proj, i) => {
-      if (proj.order_index === i) return Promise.resolve();
-      proj.order_index = i;
-      return updateProject(proj.id, { order_index: i });
-    }));
+
+    const writes = projects.map((proj, i) => {
+      const patch = {};
+      if (proj.order_index !== i) { proj.order_index = i; patch.order_index = i; }
+      if (proj === srcProj && changingCategory) patch.category_id = srcProj.category_id;
+      return Object.keys(patch).length ? updateProject(proj.id, patch) : Promise.resolve();
+    });
+    await Promise.all(writes);
   }
 
-  async function createProject(name, tag, color) {
+  async function moveProjectToCategory(srcId, categoryId) {
+    const srcProj = projects.find(x => x.id === srcId);
+    if (!srcProj) return;
+    const normalized = categoryId || null;
+    if ((srcProj.category_id || null) === normalized) return; // dropped back into its own section
+
+    srcProj.category_id = normalized;
+    projects = projects.filter(p => p !== srcProj);
+    projects.push(srcProj);
+    render();
+
+    const writes = projects.map((proj, i) => {
+      const patch = {};
+      if (proj.order_index !== i) { proj.order_index = i; patch.order_index = i; }
+      if (proj === srcProj) patch.category_id = normalized;
+      return Object.keys(patch).length ? updateProject(proj.id, patch) : Promise.resolve();
+    });
+    await Promise.all(writes);
+  }
+
+  async function createProject(name, tag, color, categoryId) {
     const res = await fetch("/api/projects", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, tag, color })
+      body: JSON.stringify({ name, tag, color, category_id: categoryId || null })
     });
     const created = await res.json();
     projects.push(created);
@@ -439,29 +629,36 @@
     render();
   }
 
-  const swatchesEl = document.getElementById("npSwatches");
-  PALETTE.forEach((hex, i) => {
-    const sw = document.createElement("div");
-    sw.className = "swatch" + (i === 0 ? " selected" : "");
-    sw.style.background = hex;
-    sw.addEventListener("click", () => {
-      selectedColor = hex;
-      swatchesEl.querySelectorAll(".swatch").forEach(s => s.classList.remove("selected"));
-      sw.classList.add("selected");
+  async function createCategory(name) {
+    const res = await fetch("/api/categories", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name })
     });
-    swatchesEl.appendChild(sw);
-  });
+    const created = await res.json();
+    categories.push(created);
+    render();
+  }
 
-  document.getElementById("newProjectForm").addEventListener("submit", e => {
+  async function updateCategory(id, patch) {
+    await fetch(`/api/categories/${encodeURIComponent(id)}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch)
+    });
+  }
+
+  async function deleteCategory(id) {
+    categories = categories.filter(c => c.id !== id);
+    projects.forEach(p => { if (p.category_id === id) p.category_id = null; });
+    render();
+    await fetch(`/api/categories/${encodeURIComponent(id)}`, { method: "DELETE" });
+  }
+
+  document.getElementById("newCategoryForm").addEventListener("submit", e => {
     e.preventDefault();
-    const name = document.getElementById("npName").value.trim();
-    const tag = document.getElementById("npTag").value.trim();
+    const input = document.getElementById("ncName");
+    const name = input.value.trim();
     if (!name) return;
-    createProject(name, tag, selectedColor);
+    createCategory(name);
     e.target.reset();
-    swatchesEl.querySelectorAll(".swatch").forEach((s, i) => s.classList.toggle("selected", i === 0));
-    selectedColor = PALETTE[0];
-    document.querySelector(".newproject").open = false;
+    document.querySelector("body > .newproject").open = false;
   });
 
   loadAll();
