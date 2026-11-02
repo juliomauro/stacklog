@@ -39,10 +39,17 @@ def init_db():
             name TEXT NOT NULL,
             color TEXT NOT NULL DEFAULT '#5fb3a8',
             tag TEXT NOT NULL DEFAULT '',
-            created_at INTEGER NOT NULL
+            created_at INTEGER NOT NULL,
+            order_index INTEGER NOT NULL DEFAULT 0
         )
         """
     )
+    # migration: add order_index to a projects table created before this column existed
+    existing_cols = {row[1] for row in conn.execute("PRAGMA table_info(projects)")}
+    if "order_index" not in existing_cols:
+        conn.execute("ALTER TABLE projects ADD COLUMN order_index INTEGER NOT NULL DEFAULT 0")
+        for i, row in enumerate(conn.execute("SELECT id FROM projects ORDER BY created_at ASC")):
+            conn.execute("UPDATE projects SET order_index = ? WHERE id = ?", (i, row[0]))
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS tasks (
@@ -82,7 +89,7 @@ def init_db():
 
 @app.get("/api/projects")
 def list_projects():
-    rows = get_db().execute("SELECT * FROM projects ORDER BY created_at ASC").fetchall()
+    rows = get_db().execute("SELECT * FROM projects ORDER BY order_index ASC, created_at ASC").fetchall()
     return jsonify([dict(r) for r in rows])
 
 
@@ -96,12 +103,14 @@ def create_project():
     tag = (body.get("tag") or "").strip()
     project_id = uuid.uuid4().hex[:12]
     now = int(time.time() * 1000)
-    get_db().execute(
-        "INSERT INTO projects (id, name, color, tag, created_at) VALUES (?, ?, ?, ?, ?)",
-        (project_id, name, color, tag, now),
+    db = get_db()
+    next_order = db.execute("SELECT COALESCE(MAX(order_index), -1) + 1 FROM projects").fetchone()[0]
+    db.execute(
+        "INSERT INTO projects (id, name, color, tag, created_at, order_index) VALUES (?, ?, ?, ?, ?, ?)",
+        (project_id, name, color, tag, now, next_order),
     )
-    get_db().commit()
-    return jsonify({"id": project_id, "name": name, "color": color, "tag": tag, "created_at": now}), 201
+    db.commit()
+    return jsonify({"id": project_id, "name": name, "color": color, "tag": tag, "created_at": now, "order_index": next_order}), 201
 
 
 @app.patch("/api/projects/<project_id>")
@@ -112,6 +121,12 @@ def update_project(project_id):
         if key in body:
             fields.append(f"{key} = ?")
             values.append((body[key] or "").strip())
+    if "order_index" in body:
+        try:
+            fields.append("order_index = ?")
+            values.append(int(body["order_index"]))
+        except (TypeError, ValueError):
+            return jsonify({"error": "order_index must be an integer"}), 400
     if not fields:
         return jsonify({"error": "nothing to update"}), 400
     values.append(project_id)

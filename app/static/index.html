@@ -49,7 +49,13 @@
 
   .panels { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); align-items: start; }
   .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; border-left: 4px solid var(--accent); }
-  .panel-head { padding: 14px 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
+  .panel-head { padding: 14px 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; border-bottom: 1px solid var(--border); background: var(--surface-2); cursor: pointer; }
+  .chevron { background: none; border: none; color: var(--fg-dim); cursor: pointer; font-size: 0.8rem; padding: 2px 4px; line-height: 1; border-radius: 6px; transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .panel.expanded .chevron { transform: rotate(90deg); }
+  .draghandle { color: var(--fg-dim); font-size: 0.95rem; cursor: grab; line-height: 1; padding: 2px 2px; user-select: none; }
+  .draghandle:active { cursor: grabbing; }
+  .panel.dragging { opacity: 0.4; }
+  .panel.drag-over { outline: 2px dashed var(--accent); outline-offset: 2px; }
   .panel-head h2 { font-size: 1.05rem; margin: 0; flex: 1 1 auto; min-width: 0; cursor: text; }
   .panel-head h2[contenteditable="true"] { outline: 1px dashed var(--accent); border-radius: 4px; padding: 0 2px; }
   .chip { font-family: "JetBrains Mono", monospace; font-size: 0.68rem; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--accent); white-space: nowrap; cursor: text; }
@@ -57,10 +63,22 @@
   .iconbtn { background: none; border: none; color: var(--fg-dim); cursor: pointer; font-size: 0.95rem; padding: 2px 4px; line-height: 1; border-radius: 6px; }
   .iconbtn:hover { background: var(--border); color: var(--danger); }
 
-  .panel-progress { padding: 10px 18px 0; display: flex; align-items: center; gap: 10px; }
+  .panel-progress { padding: 10px 18px; display: flex; align-items: center; gap: 10px; cursor: pointer; }
   .panel-progress .track { flex: 1; height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; min-width: 0; }
   .panel-progress .track > span { display: block; height: 100%; border-radius: 999px; background: var(--accent); transition: width 0.4s ease; }
   .panel-progress .count { font-family: "JetBrains Mono", monospace; font-size: 0.75rem; color: var(--fg-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .panel-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .panel.expanded .panel-body { grid-template-rows: 1fr; }
+  .panel-body-inner {
+    overflow: hidden; min-height: 0;
+    opacity: 0; transform: scaleY(0.94); transform-origin: top;
+    transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .panel.expanded .panel-body-inner { opacity: 1; transform: scaleY(1); }
+  @media (prefers-reduced-motion: reduce) {
+    .panel-body, .panel-body-inner, .chevron { transition: none; }
+  }
 
   ul.tasks { list-style: none; margin: 0; padding: 8px 10px 14px; display: flex; flex-direction: column; }
   .task { display: flex; align-items: flex-start; gap: 10px; padding: 9px 8px; border-radius: 8px; }
@@ -145,6 +163,24 @@
   let projects = [];
   let tasks = [];
   let selectedColor = PALETTE[0];
+  let dragSrcId = null;
+
+  function loadExpanded() {
+    try { return new Set(JSON.parse(localStorage.getItem("stacklog_expanded") || "[]")); }
+    catch (e) { return new Set(); }
+  }
+  function saveExpanded() {
+    try { localStorage.setItem("stacklog_expanded", JSON.stringify([...expandedIds])); }
+    catch (e) { /* private window or storage blocked, ignore */ }
+  }
+  const expandedIds = loadExpanded();
+
+  function toggleExpand(panel, projectId) {
+    const isOpen = expandedIds.has(projectId);
+    if (isOpen) expandedIds.delete(projectId); else expandedIds.add(projectId);
+    panel.classList.toggle("expanded", !isOpen);
+    saveExpanded();
+  }
 
   function tasksFor(projectId) { return tasks.filter(t => t.project_id === projectId); }
 
@@ -162,11 +198,57 @@
     projects.forEach(p => {
       const list = tasksFor(p.id);
       const panel = document.createElement("div");
-      panel.className = "panel";
+      panel.className = "panel" + (expandedIds.has(p.id) ? " expanded" : "");
       panel.style.setProperty("--accent", p.color || PALETTE[0]);
 
       const head = document.createElement("div");
       head.className = "panel-head";
+      head.addEventListener("click", e => {
+        if (e.target.closest(".iconbtn, .draghandle") || e.target.isContentEditable) return;
+        toggleExpand(panel, p.id);
+      });
+
+      const handle = document.createElement("span");
+      handle.className = "draghandle";
+      handle.title = "arrastar para reordenar";
+      handle.setAttribute("aria-hidden", "true");
+      handle.textContent = "⠿";
+      handle.draggable = true;
+      handle.addEventListener("dragstart", e => {
+        e.stopPropagation();
+        dragSrcId = p.id;
+        panel.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", p.id);
+        try { e.dataTransfer.setDragImage(panel, 24, 24); } catch (err) { /* ignore */ }
+      });
+      handle.addEventListener("dragend", () => {
+        panel.classList.remove("dragging");
+        panelsEl.querySelectorAll(".panel.drag-over").forEach(el => el.classList.remove("drag-over"));
+      });
+
+      panel.addEventListener("dragover", e => {
+        if (!dragSrcId || dragSrcId === p.id) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        panel.classList.add("drag-over");
+      });
+      panel.addEventListener("dragleave", () => panel.classList.remove("drag-over"));
+      panel.addEventListener("drop", e => {
+        e.preventDefault();
+        panel.classList.remove("drag-over");
+        const srcId = dragSrcId;
+        dragSrcId = null;
+        if (!srcId || srcId === p.id) return;
+        reorderProjects(srcId, p.id);
+      });
+
+      const chevron = document.createElement("button");
+      chevron.className = "chevron";
+      chevron.type = "button";
+      chevron.title = "mostrar/esconder tarefas";
+      chevron.setAttribute("aria-label", "mostrar/esconder tarefas");
+      chevron.textContent = "▸";
 
       const h2 = document.createElement("h2");
       h2.textContent = p.name;
@@ -201,6 +283,8 @@
         if (confirm(`Excluir o projeto "${p.name}" e todas as suas tarefas?`)) deleteProject(p.id);
       });
 
+      head.appendChild(handle);
+      head.appendChild(chevron);
       head.appendChild(h2);
       head.appendChild(chip);
       head.appendChild(delBtn);
@@ -208,6 +292,7 @@
 
       const progWrap = document.createElement("div");
       progWrap.className = "panel-progress";
+      progWrap.addEventListener("click", () => toggleExpand(panel, p.id));
       const track = document.createElement("div");
       track.className = "track";
       const bar = document.createElement("span");
@@ -218,11 +303,17 @@
       progWrap.appendChild(count);
       panel.appendChild(progWrap);
 
+      const body = document.createElement("div");
+      body.className = "panel-body";
+      const bodyInner = document.createElement("div");
+      bodyInner.className = "panel-body-inner";
+      body.appendChild(bodyInner);
+
       if (list.length === 0) {
         const empty = document.createElement("div");
         empty.className = "empty";
         empty.textContent = "Nada pendente ainda. Adicione o primeiro item abaixo.";
-        panel.appendChild(empty);
+        bodyInner.appendChild(empty);
       } else {
         const doneCount = list.filter(t => t.done).length;
         bar.style.width = (doneCount / list.length * 100) + "%";
@@ -246,7 +337,7 @@
           li.querySelector(".del").addEventListener("click", () => deleteTask(t.id));
           ul.appendChild(li);
         });
-        panel.appendChild(ul);
+        bodyInner.appendChild(ul);
       }
 
       const addrow = document.createElement("div");
@@ -265,8 +356,9 @@
       };
       addBtn.addEventListener("click", submit);
       input.addEventListener("keydown", e => { if (e.key === "Enter") submit(); });
-      panel.appendChild(addrow);
+      bodyInner.appendChild(addrow);
 
+      panel.appendChild(body);
       panelsEl.appendChild(panel);
     });
 
@@ -321,6 +413,20 @@
     await fetch(`/api/projects/${encodeURIComponent(id)}`, { method: "DELETE" });
   }
 
+  async function reorderProjects(srcId, targetId) {
+    const srcIdx = projects.findIndex(x => x.id === srcId);
+    const tgtIdx = projects.findIndex(x => x.id === targetId);
+    if (srcIdx === -1 || tgtIdx === -1 || srcIdx === tgtIdx) return;
+    const [moved] = projects.splice(srcIdx, 1);
+    projects.splice(tgtIdx, 0, moved);
+    render();
+    await Promise.all(projects.map((proj, i) => {
+      if (proj.order_index === i) return Promise.resolve();
+      proj.order_index = i;
+      return updateProject(proj.id, { order_index: i });
+    }));
+  }
+
   async function createProject(name, tag, color) {
     const res = await fetch("/api/projects", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -328,6 +434,8 @@
     });
     const created = await res.json();
     projects.push(created);
+    expandedIds.add(created.id);
+    saveExpanded();
     render();
   }
 
