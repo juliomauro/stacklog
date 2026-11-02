@@ -8,6 +8,8 @@ account, no cloud, no external dependency.
 ![status](https://img.shields.io/badge/status-alpha-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
+![Stacklog preview](preview.png)
+
 ## Why
 
 Side projects pile up fast and it is easy to lose track of what is actually
