@@ -10,6 +10,9 @@
   :root {
     --bg: #f5f2eb; --surface: #eae6db; --surface-2: #ded8c7; --border: #b0a888;
     --fg: #1a3a28; --fg-dim: #5a7a68; --ok: #1a5c3a; --danger: #a8324a; --glow: none;
+    --cat-bg: #efebe1;
+    --term-green: #1a5c3a; --term-glow: none; --term-glitch: none;
+    --title-blue: #1a5c3a; --title-glow: none;
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
@@ -17,6 +20,10 @@
       --bg: #000308; --surface: #020810; --surface-2: #001540; --border: #003388;
       --fg: #00bbee; --fg-dim: #0088bb; --ok: #00b4ff; --danger: #ff3b5c;
       --glow: 0 0 10px #00b4ff66, 0 0 20px #00b4ff33;
+      --cat-bg: #010916;
+      --term-green: #00aa22; --term-glow: 0 0 8px #00aa22, 0 0 20px #00aa2288, 0 0 40px #00aa2244;
+      --term-glitch: glitch 8s ease infinite;
+      --title-blue: #00b4ff; --title-glow: 0 0 8px #00b4ff, 0 0 20px #00b4ff88, 0 0 40px #00b4ff44;
       color-scheme: dark;
     }
   }
@@ -24,6 +31,10 @@
     --bg: #000308; --surface: #020810; --surface-2: #001540; --border: #003388;
     --fg: #00bbee; --fg-dim: #0088bb; --ok: #00b4ff; --danger: #ff3b5c;
     --glow: 0 0 10px #00b4ff66, 0 0 20px #00b4ff33;
+    --cat-bg: #010916;
+    --term-green: #00aa22; --term-glow: 0 0 8px #00aa22, 0 0 20px #00aa2288, 0 0 40px #00aa2244;
+    --term-glitch: glitch 8s ease infinite;
+    --title-blue: #00b4ff; --title-glow: 0 0 8px #00b4ff, 0 0 20px #00b4ff88, 0 0 40px #00b4ff44;
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
@@ -31,18 +42,34 @@
   body {
     background: var(--bg); color: var(--fg);
     font-family: "Share Tech Mono", ui-monospace, monospace;
-    padding: 28px 16px; display: flex; flex-direction: column; gap: 22px;
-    max-width: 1280px; margin: 0 auto;
+    padding: 28px clamp(16px, 3vw, 56px); display: flex; flex-direction: column; gap: 22px;
+    max-width: 2560px; margin: 0 auto;
   }
   .mono { font-family: "Share Tech Mono", ui-monospace, monospace; }
+  /* Title look borrowed from the hero name on oruam.cloud: Orbitron 900, strong
+     glow and a brief RGB-split glitch every 8s, here in the site's terminal green
+     (#00aa22). Light theme keeps it flat, like the site does. */
   h1 {
-    text-wrap: balance; font-family: "Orbitron", monospace; font-size: 1.7rem; font-weight: 700;
-    margin: 0; letter-spacing: 1px; color: var(--fg); text-shadow: var(--glow);
+    text-wrap: balance; font-family: "Orbitron", monospace; font-size: clamp(28px, 5vw, 46px); font-weight: 900;
+    margin: 0; letter-spacing: 2px; line-height: 1.1; text-transform: uppercase;
+    /* main title stays in the site's default blue; categories and prompt use the green */
+    --glitch-glow: var(--title-glow);
+    color: var(--title-blue); text-shadow: var(--title-glow); animation: var(--term-glitch);
   }
+  /* --glitch-glow is set per element, so the same glitch keeps each one's own glow color */
+  @keyframes glitch {
+    0%, 100% { text-shadow: var(--glitch-glow); }
+    92% { text-shadow: var(--glitch-glow); }
+    93% { text-shadow: -2px 0 #ff0040, 2px 0 #00ffff; transform: translateX(-2px); }
+    94% { text-shadow: var(--glitch-glow); transform: translateX(0); }
+    96% { text-shadow: 2px 0 #ff0040, -2px 0 #00ffff; transform: translateX(2px); }
+    97% { text-shadow: var(--glitch-glow); transform: translateX(0); }
+  }
+  @media (prefers-reduced-motion: reduce) { h1, .category-head h2 { animation: none; } }
   .topstrip { display: flex; flex-direction: column; gap: 14px; }
   .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-  .prompt { font-size: 0.82rem; color: var(--fg-dim); display: flex; align-items: baseline; gap: 6px; }
-  .prompt .cursor { display: inline-block; width: 7px; height: 13px; background: var(--ok); animation: blink 1.1s steps(1) infinite; }
+  .prompt { font-size: 0.82rem; color: var(--term-green); display: flex; align-items: baseline; gap: 6px; }
+  .prompt .cursor { display: inline-block; width: 7px; height: 13px; background: var(--term-green); box-shadow: var(--term-glow); animation: blink 1.1s steps(1) infinite; }
   @keyframes blink { 50% { opacity: 0; } }
   @media (prefers-reduced-motion: reduce) { .prompt .cursor { animation: none; } }
   .sub { color: var(--fg-dim); font-size: 0.92rem; margin: 0; }
@@ -61,17 +88,42 @@
   .summarybar .track { flex: 1 1 160px; min-width: 0; height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
   .summarybar .track > span { display: block; height: 100%; background: var(--ok); border-radius: 999px; transition: width 0.4s ease; }
 
-  .category-section { display: flex; flex-direction: column; gap: 12px; }
-  .category-section.drag-over-section .panels { outline: 2px dashed var(--fg-dim); outline-offset: 4px; border-radius: 12px; }
-  .category-head { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 2px 0; }
-  .category-head .chevron { font-size: 0.7rem; }
-  .category-section.expanded > .category-head .chevron { transform: rotate(90deg); }
-  .category-head h2 {
-    font-size: 0.78rem; margin: 0; text-transform: uppercase; letter-spacing: 0.07em;
-    color: var(--fg-dim); font-weight: 700; cursor: text;
+  /* Each category is a framed box with a header band, so it reads as a group of
+     projects and not as one more row of the list. */
+  #categoriesRoot { display: flex; flex-direction: column; gap: 22px; }
+  .category-section {
+    position: relative; display: flex; flex-direction: column; gap: 12px;
+    border: 1px solid var(--border); border-radius: 14px; padding: 0 16px 16px;
+    background: var(--cat-bg);
   }
-  .category-head h2[contenteditable="true"] { outline: 1px dashed var(--fg-dim); border-radius: 4px; padding: 0 2px; color: var(--fg); }
-  .category-head .catcount { font-family: "JetBrains Mono", monospace; font-size: 0.72rem; color: var(--fg-dim); }
+  .category-section.drag-over-section { outline: 2px dashed var(--ok); outline-offset: 3px; }
+  .category-head {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; cursor: pointer;
+    margin: 0 -16px; padding: 12px 16px; background: var(--surface-2);
+    border-bottom: 1px solid var(--border); border-radius: 13px 13px 0 0;
+  }
+  .category-head .chevron { font-size: 0.85rem; }
+  .category-section.expanded > .category-head .chevron { transform: rotate(90deg); }
+  .category-head .caticon { width: 20px; height: 20px; flex: none; color: var(--term-green); }
+  .category-head h2 {
+    font-family: "Orbitron", monospace; font-size: 1.1rem; margin: 0; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--term-green); font-weight: 900; cursor: text; text-shadow: var(--term-glow); min-width: 0;
+    --glitch-glow: var(--term-glow); animation: var(--term-glitch);
+  }
+  .category-head h2[contenteditable="true"] { outline: 1px dashed var(--fg-dim); border-radius: 4px; padding: 0 2px; }
+  .category-head .catcount {
+    font-family: "JetBrains Mono", monospace; font-size: 0.72rem; color: var(--fg-dim);
+    border: 1px solid var(--border); border-radius: 999px; padding: 2px 9px; white-space: nowrap;
+  }
+  .category-section.drop-before::before, .category-section.drop-after::after {
+    content: ""; position: absolute; left: 0; right: 0; height: 3px; border-radius: 3px;
+    background: var(--ok); box-shadow: var(--glow);
+  }
+  .category-section.drop-before::before { top: -13px; }
+  .category-section.drop-after::after { bottom: -13px; }
+  /* While a category is being dragged, every category shows only its header so
+     the list is short enough to reorder. */
+  body.dragging-category .category-body, body.dragging-category .newproject { display: none; }
   .category-head .addinline {
     background: var(--surface); border: 1px solid var(--border); color: var(--fg-dim); cursor: pointer;
     font-size: 0.74rem; font-weight: 700; border-radius: 7px; padding: 5px 12px; margin-left: auto; white-space: nowrap;
@@ -80,8 +132,8 @@
   .category-head .iconbtn { opacity: 0; transition: opacity 0.15s; }
   .category-head:hover .iconbtn { opacity: 1; }
 
-  .category-progress { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
-  .category-progress .track { flex: 1; height: 5px; border-radius: 999px; background: var(--surface-2); overflow: hidden; min-width: 0; }
+  .category-progress { display: flex; align-items: center; gap: 10px; }
+  .category-progress .track { flex: 1; height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; min-width: 0; }
   .category-progress .track > span { display: block; height: 100%; border-radius: 999px; background: var(--ok); transition: width 0.4s ease; }
   .category-progress .count { font-family: "JetBrains Mono", monospace; font-size: 0.7rem; color: var(--fg-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
@@ -97,16 +149,24 @@
     .category-body, .category-body-inner { transition: none; }
   }
 
-  .panels { display: grid; gap: 16px; grid-template-columns: repeat(3, 1fr); align-items: start; min-height: 12px; }
-  @media (max-width: 900px) { .panels { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 620px) { .panels { grid-template-columns: 1fr; } }
+  /* Fluid grid: as many columns as fit (min 320px each), so wide monitors use the
+     whole width and phones drop to one column. auto-fill (not auto-fit) keeps
+     empty tracks, so a category with 1-2 projects does not stretch its cards. */
+  .panels { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); align-items: start; min-height: 12px; }
   .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; border-left: 4px solid var(--accent); }
   .panel-head { padding: 14px 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; border-bottom: 1px solid var(--border); background: var(--surface-2); cursor: pointer; }
   .chevron { background: none; border: none; color: var(--fg-dim); cursor: pointer; font-size: 0.8rem; padding: 2px 4px; line-height: 1; border-radius: 6px; transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
   .panel.expanded .chevron { transform: rotate(90deg); }
-  .draghandle { color: var(--fg-dim); font-size: 0.95rem; cursor: grab; line-height: 1; padding: 2px 2px; user-select: none; }
+  /* touch-action: none lets a finger drag the handle instead of scrolling the page */
+  .draghandle { color: var(--fg-dim); font-size: 0.95rem; cursor: grab; line-height: 1; padding: 2px 2px; user-select: none; touch-action: none; }
   .draghandle:active { cursor: grabbing; }
-  .panel.dragging { opacity: 0.4; }
+  .panel.dragging, .category-section.dragging { opacity: 0.35; }
+  .drag-ghost {
+    position: fixed; z-index: 1000; pointer-events: none; margin: 0 !important; opacity: 0.92;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45); transform: rotate(1.2deg);
+  }
+  .category-head.drag-ghost { border: 1px solid var(--border); border-radius: 13px; }
+  body.is-dragging { user-select: none; -webkit-user-select: none; cursor: grabbing; }
   .panel.drag-over { outline: 2px dashed var(--accent); outline-offset: 2px; }
   .panel-head h2 { font-size: 1.05rem; margin: 0; flex: 1 1 auto; min-width: 0; cursor: text; }
   .panel-head h2[contenteditable="true"] { outline: 1px dashed var(--accent); border-radius: 4px; padding: 0 2px; }
@@ -177,6 +237,23 @@
   .swatch { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
   .swatch.selected { border-color: var(--fg); }
   .newform button[type="submit"] { align-self: flex-start; background: var(--ok); color: #fff; border: none; border-radius: 7px; padding: 9px 18px; font-size: 0.88rem; font-weight: 700; cursor: pointer; }
+
+  /* Touch screens: no hover, so controls that only appeared on hover stay
+     visible, and every control gets a finger-sized (44px) target. */
+  @media (pointer: coarse) {
+    .draghandle, .chevron, .iconbtn, .task .del {
+      min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+    }
+    .category-head .iconbtn, .task .del { opacity: 1; }
+    .theme-toggle { min-height: 44px; padding: 0 14px; font-size: 12px; }
+    .category-head .addinline, .addrow button, .addrow input[type="text"], .newform input[type="text"],
+    .newform button[type="submit"], .addcategory { min-height: 44px; }
+    .category-head { padding: 6px 10px; gap: 4px 6px; }
+    .panel-head { padding: 6px 10px; gap: 4px 6px; }
+    .task { align-items: center; padding: 2px 8px; }
+    .swatch { width: 36px; height: 36px; }
+  }
 
   footer { text-align: center; color: var(--fg-dim); font-size: 0.78rem; padding-top: 6px; }
   footer a { color: var(--fg-dim); }
@@ -257,6 +334,9 @@
       showHideCategory: "mostrar/esconder categoria",
       noProjectsYet: 'Nenhum projeto aqui ainda. Arraste um card pra cá ou use "{btn}".',
       dragToReorder: "arrastar para reordenar",
+      dragCategory: "arrastar categoria para outra posição",
+      projectsCount: "{n} projetos",
+      projectsCountOne: "1 projeto",
       showHideTasks: "mostrar/esconder tarefas",
       noTag: "sem tag",
       deleteProjectTitle: "excluir projeto",
@@ -290,6 +370,9 @@
       showHideCategory: "show/hide category",
       noProjectsYet: 'No projects here yet. Drag a card here or use "{btn}".',
       dragToReorder: "drag to reorder",
+      dragCategory: "drag category to another position",
+      projectsCount: "{n} projects",
+      projectsCountOne: "1 project",
       showHideTasks: "show/hide tasks",
       noTag: "no tag",
       deleteProjectTitle: "delete project",
@@ -379,7 +462,6 @@
   let categories = [];
   let projects = [];
   let tasks = [];
-  let dragSrcId = null;
   const UNCATEGORIZED = null; // pseudo-category id for projects with no category_id
 
   function loadExpanded() {
@@ -449,13 +531,25 @@
 
     const sectionEl = document.createElement("div");
     sectionEl.className = "category-section" + (categoryCollapsedIds.has(section.id) ? "" : " expanded");
+    sectionEl.dataset.catId = section.id || "";
+    if (section.editable) sectionEl.dataset.draggable = "";
 
     const head = document.createElement("div");
     head.className = "category-head";
     head.addEventListener("click", e => {
-      if (e.target.closest(".iconbtn, .addinline") || e.target.isContentEditable) return;
+      if (e.target.closest(".iconbtn, .addinline, .draghandle") || e.target.isContentEditable) return;
       toggleCategorySection(sectionEl, section.id);
     });
+
+    if (section.editable) {
+      const catHandle = document.createElement("span");
+      catHandle.className = "draghandle";
+      catHandle.title = t("dragCategory");
+      catHandle.setAttribute("aria-hidden", "true");
+      catHandle.textContent = "⠿";
+      catHandle.addEventListener("pointerdown", e => beginDrag(e, "category", section.id, sectionEl, head));
+      head.appendChild(catHandle);
+    }
 
     const chevron = document.createElement("button");
     chevron.className = "chevron";
@@ -464,6 +558,13 @@
     chevron.setAttribute("aria-label", t("showHideCategory"));
     chevron.textContent = "▸";
     head.appendChild(chevron);
+
+    const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    icon.setAttribute("viewBox", "0 0 24 24");
+    icon.setAttribute("class", "caticon");
+    icon.setAttribute("aria-hidden", "true");
+    icon.innerHTML = '<path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2.5h8.5A1.5 1.5 0 0 1 21 9v9.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>';
+    head.appendChild(icon);
 
     const h2 = document.createElement("h2");
     h2.textContent = section.name;
@@ -485,7 +586,7 @@
 
     const count = document.createElement("span");
     count.className = "catcount mono";
-    count.textContent = list.length;
+    count.textContent = list.length === 1 ? t("projectsCountOne") : t("projectsCount", { n: list.length });
     head.appendChild(count);
 
     if (section.editable) {
@@ -534,23 +635,6 @@
 
     const panelsEl = document.createElement("div");
     panelsEl.className = "panels";
-    panelsEl.addEventListener("dragover", e => {
-      if (!dragSrcId) return;
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "move";
-      sectionEl.classList.add("drag-over-section");
-    });
-    panelsEl.addEventListener("dragleave", e => {
-      if (!panelsEl.contains(e.relatedTarget)) sectionEl.classList.remove("drag-over-section");
-    });
-    panelsEl.addEventListener("drop", e => {
-      e.preventDefault();
-      sectionEl.classList.remove("drag-over-section");
-      const srcId = dragSrcId;
-      dragSrcId = null;
-      if (!srcId) return;
-      moveProjectToCategory(srcId, section.id);
-    });
     bodyInner.appendChild(panelsEl);
     sectionEl.appendChild(body);
 
@@ -608,6 +692,7 @@
       const panel = document.createElement("div");
       panel.className = "panel" + (expandedIds.has(p.id) ? " expanded" : "");
       panel.style.setProperty("--accent", p.color || PALETTE[0]);
+      panel.dataset.id = p.id;
 
       const head = document.createElement("div");
       head.className = "panel-head";
@@ -621,37 +706,7 @@
       handle.title = t("dragToReorder");
       handle.setAttribute("aria-hidden", "true");
       handle.textContent = "⠿";
-      handle.draggable = true;
-      handle.addEventListener("dragstart", e => {
-        e.stopPropagation();
-        dragSrcId = p.id;
-        panel.classList.add("dragging");
-        e.dataTransfer.effectAllowed = "move";
-        e.dataTransfer.setData("text/plain", p.id);
-        try { e.dataTransfer.setDragImage(panel, 24, 24); } catch (err) { /* ignore */ }
-      });
-      handle.addEventListener("dragend", () => {
-        panel.classList.remove("dragging");
-        panelsEl.querySelectorAll(".panel.drag-over").forEach(el => el.classList.remove("drag-over"));
-      });
-
-      panel.addEventListener("dragover", e => {
-        if (!dragSrcId || dragSrcId === p.id) return;
-        e.preventDefault();
-        e.stopPropagation(); // don't also trigger the category section's own dragover
-        e.dataTransfer.dropEffect = "move";
-        panel.classList.add("drag-over");
-      });
-      panel.addEventListener("dragleave", () => panel.classList.remove("drag-over"));
-      panel.addEventListener("drop", e => {
-        e.preventDefault();
-        e.stopPropagation(); // don't also trigger the category section's own drop
-        panel.classList.remove("drag-over");
-        const srcId = dragSrcId;
-        dragSrcId = null;
-        if (!srcId || srcId === p.id) return;
-        reorderProjects(srcId, p.id);
-      });
+      handle.addEventListener("pointerdown", e => beginDrag(e, "project", p.id, panel, panel));
 
       const chevron = document.createElement("button");
       chevron.className = "chevron";
@@ -772,6 +827,148 @@
       panelsEl.appendChild(panel);
   }
 
+  // ---------- drag & drop ----------
+  // Built on pointer events instead of the native HTML5 drag API, because the
+  // native one does not fire for touch: this works the same with mouse, finger
+  // and pen. A drag only starts after the pointer moves a few px, so a plain
+  // tap on a handle does nothing.
+  const DRAG_THRESHOLD = 6;
+  const SCROLL_EDGE = 70; // px from the top/bottom edge where the page auto-scrolls
+  let drag = null;
+
+  function beginDrag(e, kind, id, srcEl, ghostFrom) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    e.preventDefault();
+    const rect = ghostFrom.getBoundingClientRect();
+    drag = {
+      kind, id, srcEl, ghostFrom,
+      x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY,
+      offX: e.clientX - rect.left, offY: e.clientY - rect.top, width: rect.width,
+      started: false, ghost: null, target: null, raf: 0
+    };
+    window.addEventListener("pointermove", onDragMove, { passive: false });
+    window.addEventListener("pointerup", onDragEnd);
+    window.addEventListener("pointercancel", onDragCancel);
+  }
+
+  function onDragMove(e) {
+    if (!drag) return;
+    e.preventDefault();
+    drag.x = e.clientX;
+    drag.y = e.clientY;
+    if (!drag.started) {
+      if (Math.hypot(drag.x - drag.startX, drag.y - drag.startY) < DRAG_THRESHOLD) return;
+      drag.started = true;
+      const ghost = drag.ghostFrom.cloneNode(true);
+      ghost.classList.add("drag-ghost");
+      ghost.style.width = drag.width + "px";
+      document.body.appendChild(ghost);
+      drag.ghost = ghost;
+      drag.srcEl.classList.add("dragging");
+      document.body.classList.add("is-dragging");
+      if (drag.kind === "category") {
+        // collapse every category to its header so the whole list fits on screen
+        document.body.classList.add("dragging-category");
+        drag.offY = Math.min(drag.offY, drag.ghostFrom.getBoundingClientRect().height);
+      }
+      drag.raf = requestAnimationFrame(dragTick);
+    }
+    drag.ghost.style.left = (drag.x - drag.offX) + "px";
+    drag.ghost.style.top = (drag.y - drag.offY) + "px";
+    updateDropTarget();
+  }
+
+  function dragTick() {
+    if (!drag || !drag.started) return;
+    const h = window.innerHeight;
+    let dy = 0;
+    if (drag.y < SCROLL_EDGE) dy = -Math.ceil((SCROLL_EDGE - drag.y) / 4);
+    else if (drag.y > h - SCROLL_EDGE) dy = Math.ceil((drag.y - (h - SCROLL_EDGE)) / 4);
+    if (dy) { window.scrollBy(0, dy); updateDropTarget(); }
+    drag.raf = requestAnimationFrame(dragTick);
+  }
+
+  function clearDropMarks() {
+    document.querySelectorAll(".drag-over, .drag-over-section, .drop-before, .drop-after")
+      .forEach(el => el.classList.remove("drag-over", "drag-over-section", "drop-before", "drop-after"));
+  }
+
+  function updateDropTarget() {
+    clearDropMarks();
+    drag.target = null;
+    if (drag.kind === "project") {
+      // the ghost has pointer-events: none, so this finds what is under it
+      const el = document.elementFromPoint(drag.x, drag.y);
+      const panel = el && el.closest(".panel");
+      if (panel && panel.dataset.id && panel.dataset.id !== drag.id) {
+        panel.classList.add("drag-over");
+        drag.target = { panelId: panel.dataset.id };
+        return;
+      }
+      const section = el && el.closest(".category-section");
+      if (section) {
+        section.classList.add("drag-over-section");
+        drag.target = { categoryId: section.dataset.catId || null };
+      }
+      return;
+    }
+    // category: insert before the first other category whose middle is below the pointer
+    const others = [...categoriesRoot.querySelectorAll(".category-section[data-draggable]")]
+      .filter(s => s.dataset.catId !== drag.id);
+    if (!others.length) return;
+    const before = others.find(s => {
+      const r = s.getBoundingClientRect();
+      return drag.y < r.top + r.height / 2;
+    });
+    if (before) {
+      before.classList.add("drop-before");
+      drag.target = { beforeId: before.dataset.catId };
+    } else {
+      others[others.length - 1].classList.add("drop-after");
+      drag.target = { beforeId: null };
+    }
+  }
+
+  function finishDrag(apply) {
+    if (!drag) return;
+    const d = drag;
+    drag = null;
+    window.removeEventListener("pointermove", onDragMove);
+    window.removeEventListener("pointerup", onDragEnd);
+    window.removeEventListener("pointercancel", onDragCancel);
+    cancelAnimationFrame(d.raf);
+    if (d.ghost) d.ghost.remove();
+    d.srcEl.classList.remove("dragging");
+    document.body.classList.remove("is-dragging", "dragging-category");
+    clearDropMarks();
+    if (!apply || !d.started || !d.target) return;
+    if (d.kind === "project") {
+      if (d.target.panelId) reorderProjects(d.id, d.target.panelId);
+      else moveProjectToCategory(d.id, d.target.categoryId);
+    } else {
+      reorderCategories(d.id, d.target.beforeId);
+    }
+  }
+  function onDragEnd() { finishDrag(true); }
+  function onDragCancel() { finishDrag(false); }
+
+  async function reorderCategories(srcId, beforeId) {
+    const src = categories.find(c => c.id === srcId);
+    if (!src) return;
+    const rest = categories.filter(c => c !== src);
+    let idx = beforeId ? rest.findIndex(c => c.id === beforeId) : rest.length;
+    if (idx < 0) idx = rest.length;
+    rest.splice(idx, 0, src);
+    if (rest.every((c, i) => c === categories[i])) return; // dropped where it already was
+    categories = rest;
+    render();
+    await Promise.all(categories.map((c, i) => {
+      if (c.order_index === i) return Promise.resolve();
+      c.order_index = i;
+      return updateCategory(c.id, { order_index: i });
+    }));
+  }
+
   async function loadAll() {
     const [cr, pr, tr] = await Promise.all([fetch("/api/categories"), fetch("/api/projects"), fetch("/api/tasks")]);
     categories = await cr.json();
@@ -829,7 +1026,9 @@
     if (changingCategory) srcProj.category_id = tgtProj.category_id || null;
 
     projects.splice(srcIdx, 1);
-    const newTgtIdx = projects.indexOf(tgtProj);
+    // moving forward lands after the target, moving back lands before it; without
+    // this, dropping a card on its right-hand neighbour did nothing
+    const newTgtIdx = projects.indexOf(tgtProj) + (srcIdx < tgtIdx ? 1 : 0);
     projects.splice(newTgtIdx, 0, srcProj);
     render();
 

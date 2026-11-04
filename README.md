@@ -28,6 +28,11 @@ combined, so a quick glance tells you where things stand.
   onto another category to move it
 - Collapse and expand project cards, drag a card's handle to reorder it
   within a category
+- Drag a category's handle to reorder categories
+- Drag and drop works with mouse and touch, so it also works on a phone
+- Layout fits the screen: as many card columns as fit on wide monitors,
+  down to one column on a phone, with finger-sized controls on touch
+  screens
 - Add, check off, and delete tasks per project
 - Overall and per-category and per-project progress bars
 - Data persists in SQLite, a single file you can back up or copy
@@ -129,7 +134,10 @@ only over a private network or VPN (Tailscale, WireGuard).
   heading, to edit it in place. Press Enter or click away to save.
 - **Reorder or move a project**: drag a project card by its handle (⠿) to
   reorder it within a category, or drop it onto a different category's
-  section to move it there.
+  section to move it there. Works with a finger on touch screens too.
+- **Reorder categories**: drag a category by the handle (⠿) next to its
+  name. While dragging, every category shows only its header so the list
+  fits on screen; a line marks where it will land.
 - **Delete a category**: click the small "x" next to its heading. Its
   projects become uncategorized, they are not deleted. You will be asked
   to confirm.
