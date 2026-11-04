@@ -13,6 +13,7 @@
     --cat-bg: #efebe1;
     --term-green: #1a5c3a; --term-glow: none; --term-glitch: none;
     --title-blue: #1a5c3a; --title-glow: none;
+    --scanline: rgba(0,0,0,0.04);
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
@@ -24,6 +25,7 @@
       --term-green: #00aa22; --term-glow: 0 0 8px #00aa22, 0 0 20px #00aa2288, 0 0 40px #00aa2244;
       --term-glitch: glitch 8s ease infinite;
       --title-blue: #00b4ff; --title-glow: 0 0 8px #00b4ff, 0 0 20px #00b4ff88, 0 0 40px #00b4ff44;
+      --scanline: rgba(0,0,0,0.15);
       color-scheme: dark;
     }
   }
@@ -35,6 +37,7 @@
     --term-green: #00aa22; --term-glow: 0 0 8px #00aa22, 0 0 20px #00aa2288, 0 0 40px #00aa2244;
     --term-glitch: glitch 8s ease infinite;
     --title-blue: #00b4ff; --title-glow: 0 0 8px #00b4ff, 0 0 20px #00b4ff88, 0 0 40px #00b4ff44;
+      --scanline: rgba(0,0,0,0.15);
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
@@ -55,6 +58,13 @@
     /* main title stays in the site's default blue; categories and prompt use the green */
     --glitch-glow: var(--title-glow);
     color: var(--title-blue); text-shadow: var(--title-glow); animation: var(--term-glitch);
+    position: relative; width: fit-content;
+  }
+  /* CRT scanlines over the title, same stripe pattern as body::after on oruam.cloud
+     (2px clear, 2px dark), lighter in the light theme like the site does. */
+  h1::after {
+    content: ''; position: absolute; inset: -4px -6px; pointer-events: none;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, var(--scanline) 2px, var(--scanline) 4px);
   }
   /* --glitch-glow is set per element, so the same glitch keeps each one's own glow color */
   @keyframes glitch {
