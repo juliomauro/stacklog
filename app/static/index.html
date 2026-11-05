@@ -14,6 +14,7 @@
     --term-green: #1a5c3a; --term-glow: none; --term-glitch: none;
     --title-blue: #1a5c3a; --title-glow: none;
     --scanline: rgba(0,0,0,0.04);
+    --warn: #9a6a12;
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
@@ -26,6 +27,7 @@
       --term-glitch: glitch 8s ease infinite;
       --title-blue: #00b4ff; --title-glow: 0 0 8px #00b4ff, 0 0 20px #00b4ff88, 0 0 40px #00b4ff44;
       --scanline: rgba(0,0,0,0.15);
+      --warn: #e0b040;
       color-scheme: dark;
     }
   }
@@ -38,9 +40,12 @@
     --term-glitch: glitch 8s ease infinite;
     --title-blue: #00b4ff; --title-glow: 0 0 8px #00b4ff, 0 0 20px #00b4ff88, 0 0 40px #00b4ff44;
       --scanline: rgba(0,0,0,0.15);
+    --warn: #e0b040;
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
+  /* form controls do not inherit the page font by default */
+  button, input, textarea { font-family: inherit; }
   html, body { margin: 0; }
   body {
     background: var(--bg); color: var(--fg);
@@ -91,9 +96,15 @@
     padding: 4px 10px; cursor: pointer; transition: all 0.2s;
   }
   .theme-toggle:hover { color: var(--ok); border-color: var(--ok); background: var(--surface-2); }
+  /* topbar buttons and the done toggle: bigger and brighter so they are not missed */
+  .controls { gap: 10px; flex-wrap: wrap; }
+  .controls .theme-toggle, #doneToggle {
+    font-size: 12px; padding: 8px 16px; border-radius: 6px; color: var(--ok); border-color: var(--ok);
+  }
+  #doneToggle { align-self: stretch; }
 
   .summarybar { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; display: flex; flex-wrap: wrap; gap: 18px; align-items: center; }
-  .summarybar .big { font-family: "JetBrains Mono", monospace; font-size: 1.9rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+  .summarybar .big { font-family: "Share Tech Mono", monospace; font-size: 1.9rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
   .summarybar .biglabel { font-size: 0.72rem; color: var(--fg-dim); text-transform: uppercase; letter-spacing: 0.06em; }
   .summarybar .track { flex: 1 1 160px; min-width: 0; height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
   .summarybar .track > span { display: block; height: 100%; background: var(--ok); border-radius: 999px; transition: width 0.4s ease; }
@@ -122,7 +133,7 @@
   }
   .category-head h2[contenteditable="true"] { outline: 1px dashed var(--fg-dim); border-radius: 4px; padding: 0 2px; }
   .category-head .catcount {
-    font-family: "JetBrains Mono", monospace; font-size: 0.72rem; color: var(--fg-dim);
+    font-family: "Share Tech Mono", monospace; font-size: 0.72rem; color: var(--fg-dim);
     border: 1px solid var(--border); border-radius: 999px; padding: 2px 9px; white-space: nowrap;
   }
   .category-section.drop-before::before, .category-section.drop-after::after {
@@ -145,7 +156,7 @@
   .category-progress { display: flex; align-items: center; gap: 10px; }
   .category-progress .track { flex: 1; height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; min-width: 0; }
   .category-progress .track > span { display: block; height: 100%; border-radius: 999px; background: var(--ok); transition: width 0.4s ease; }
-  .category-progress .count { font-family: "JetBrains Mono", monospace; font-size: 0.7rem; color: var(--fg-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .category-progress .count { font-family: "Share Tech Mono", monospace; font-size: 0.7rem; color: var(--fg-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
   .category-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
   .category-section.expanded .category-body { grid-template-rows: 1fr; }
@@ -164,7 +175,7 @@
      empty tracks, so a category with 1-2 projects does not stretch its cards. */
   .panels { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); align-items: start; min-height: 12px; }
   .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; border-left: 4px solid var(--accent); }
-  .panel-head { padding: 14px 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; border-bottom: 1px solid var(--border); background: var(--surface-2); cursor: pointer; }
+  .panel-head { padding: 14px 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; border-bottom: 1px solid var(--border); background: var(--surface-2); cursor: pointer; }
   .chevron { background: none; border: none; color: var(--fg-dim); cursor: pointer; font-size: 0.8rem; padding: 2px 4px; line-height: 1; border-radius: 6px; transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
   .panel.expanded .chevron { transform: rotate(90deg); }
   /* touch-action: none lets a finger drag the handle instead of scrolling the page */
@@ -178,9 +189,11 @@
   .category-head.drag-ghost { border: 1px solid var(--border); border-radius: 13px; }
   body.is-dragging { user-select: none; -webkit-user-select: none; cursor: grabbing; }
   .panel.drag-over { outline: 2px dashed var(--accent); outline-offset: 2px; }
-  .panel-head h2 { font-size: 1.05rem; margin: 0; flex: 1 1 auto; min-width: 0; cursor: text; }
+  /* the name takes the free space and wraps itself, so the chips and buttons stay on one line */
+  .panel-head h2 { font-size: 1.05rem; margin: 0; flex: 1 1 6em; min-width: 0; cursor: text; overflow-wrap: anywhere; }
+  .panel-head > :not(h2) { flex: none; }
   .panel-head h2[contenteditable="true"] { outline: 1px dashed var(--accent); border-radius: 4px; padding: 0 2px; }
-  .chip { font-family: "JetBrains Mono", monospace; font-size: 0.68rem; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--accent); white-space: nowrap; cursor: text; }
+  .chip { font-family: "Share Tech Mono", monospace; font-size: 0.68rem; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--accent); white-space: nowrap; cursor: text; }
   .chip[contenteditable="true"] { outline: 1px dashed var(--accent); }
   .iconbtn { background: none; border: none; color: var(--fg-dim); cursor: pointer; font-size: 0.95rem; padding: 2px 4px; line-height: 1; border-radius: 6px; }
   .iconbtn:hover { background: var(--border); color: var(--danger); }
@@ -188,7 +201,7 @@
   .panel-progress { padding: 10px 18px; display: flex; align-items: center; gap: 10px; cursor: pointer; }
   .panel-progress .track { flex: 1; height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; min-width: 0; }
   .panel-progress .track > span { display: block; height: 100%; border-radius: 999px; background: var(--accent); transition: width 0.4s ease; }
-  .panel-progress .count { font-family: "JetBrains Mono", monospace; font-size: 0.75rem; color: var(--fg-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .panel-progress .count { font-family: "Share Tech Mono", monospace; font-size: 0.75rem; color: var(--fg-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
   .panel-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
   .panel.expanded .panel-body { grid-template-rows: 1fr; }
@@ -219,14 +232,110 @@
   .task .del { background: none; border: none; color: var(--fg-dim); cursor: pointer; font-size: 0.95rem; padding: 0 4px; line-height: 1.4; opacity: 0; transition: opacity 0.15s; }
   .task:hover .del { opacity: 1; }
   .task .del:hover { color: var(--danger); }
+  .task .notebtn { background: none; border: none; color: var(--fg-dim); cursor: pointer; font-size: 0.85rem; padding: 0 4px; line-height: 1.4; opacity: 0.45; transition: opacity 0.15s; }
+  .task:hover .notebtn { opacity: 1; }
+  .task .notebtn:hover { color: var(--ok); }
+  .task.hasnote .notebtn { opacity: 1; color: var(--warn); }
+  .task .notetext {
+    display: block; font-size: 0.78rem; color: var(--warn); margin-top: 2px; cursor: pointer;
+    white-space: pre-wrap; overflow-wrap: anywhere;
+  }
+  .task.done .notetext { color: var(--fg-dim); }
+
+  /* weekly report: a framed box like a category, opened from the topbar */
+  .report { border: 1px solid var(--border); border-radius: 14px; background: var(--cat-bg); padding: 0 16px 16px; display: flex; flex-direction: column; gap: 14px; }
+  .report[hidden] { display: none; }
+  .report-head {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+    margin: 0 -16px; padding: 12px 16px; background: var(--surface-2); border-bottom: 1px solid var(--border); border-radius: 13px 13px 0 0;
+  }
+  .report-head h2 { font-family: "Orbitron", monospace; font-size: 1.1rem; margin: 0; text-transform: uppercase; letter-spacing: 2px; color: var(--term-green); text-shadow: var(--term-glow); font-weight: 900; }
+  .report-head .range { display: flex; gap: 6px; align-items: center; margin-left: auto; flex-wrap: wrap; }
+  .report-head input[type="date"] { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--fg); padding: 4px 6px; font-family: inherit; font-size: 0.8rem; }
+  .report-head input[type="text"] { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--fg); padding: 5px 8px; font-size: 0.85rem; min-width: 0; width: 14em; }
+  .taglist { display: flex; flex-wrap: wrap; gap: 10px; padding-top: 4px; }
+  .tagrow { display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 999px; padding: 3px 6px 3px 12px; background: var(--surface); }
+  .tagrow input { background: none; border: none; color: var(--ok); font-size: 0.88rem; padding: 2px 0; min-width: 2ch; }
+  .tagrow input:focus { outline: 1px dashed var(--ok); outline-offset: 2px; }
+  .tagrow .tcount { color: var(--fg-dim); font-size: 0.72rem; cursor: pointer; white-space: nowrap; }
+  .tagrow .tcount:hover { color: var(--ok); text-decoration: underline; }
+  .linkchip {
+    font-size: 0.68rem; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--ok);
+    white-space: nowrap; text-decoration: none; max-width: 16em; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+  }
+  .linkchip:hover { border-color: var(--ok); }
+  .iconbtn.archbtn:hover, .iconbtn.linkbtn:hover { color: var(--ok); }
+  .iconbtn.archbtn.suggest { color: var(--ok); border: 1px solid var(--ok); padding: 1px 6px; }
+  .notetext a, .report .who a { color: inherit; text-decoration: underline; overflow-wrap: anywhere; }
+  .panel.archived { opacity: 0.85; }
+  .archived-section .category-head h2 { color: var(--fg-dim); text-shadow: none; animation: none; }
+  .chipedit { font-size: 0.75rem; width: 10em; background: var(--surface); border: 1px solid var(--accent); border-radius: 999px; color: var(--fg); padding: 2px 8px; }
+  .report h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-dim); margin: 6px 0 0; }
+  .report .rcat { font-weight: 700; color: var(--term-green); margin-top: 6px; }
+  .report .rproj { margin: 4px 0 0 4px; }
+  .report .rproj .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+  .report ul { margin: 2px 0 0; padding-left: 26px; font-size: 0.88rem; line-height: 1.5; }
+  .report .when, .report .who { color: var(--fg-dim); font-size: 0.78rem; }
+  .report .who { color: var(--warn); display: block; }
 
   .addrow { display: flex; gap: 8px; padding: 4px 18px 16px; }
   .addrow input[type="text"] { flex: 1; min-width: 0; background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; color: var(--fg); font-size: 0.88rem; }
   .addrow input[type="text"]:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
-  .addrow button { background: var(--accent); color: #fff; border: none; border-radius: 7px; padding: 8px 14px; font-size: 0.85rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .addrow button, .btn, .newform button[type="submit"] {
+    background: var(--surface); color: var(--ok); border: 1px solid var(--border); border-radius: 7px;
+    padding: 8px 14px; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; white-space: nowrap;
+  }
+  .addrow button:hover, .btn:hover, .newform button[type="submit"]:hover { border-color: var(--ok); background: var(--surface-2); }
+  .btn.primary { border-color: var(--ok); }
   .addrow button:active { transform: translateY(1px); }
 
   .empty { padding: 18px; color: var(--fg-dim); font-size: 0.88rem; }
+
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .toolbar input[type="search"] {
+    flex: 1 1 240px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 9px 12px; color: var(--fg); font-size: 0.9rem;
+  }
+  .toolbar input[type="search"]:focus { outline: 2px solid var(--ok); outline-offset: -1px; }
+
+  .task .tdrag { margin-top: 1px; opacity: 0.45; }
+  .task:hover .tdrag { opacity: 1; }
+  .task.dragging { opacity: 0.35; }
+  /* done tasks have no drag handle; indent them so checkboxes line up with the open ones */
+  .donegroup .task.done { padding-left: 31px; }
+  .task.drag-ghost { background: var(--surface-2); border: 1px solid var(--border); list-style: none; }
+  .task.drop-before { box-shadow: inset 0 3px 0 var(--ok); }
+  .task.drop-after { box-shadow: inset 0 -3px 0 var(--ok); }
+  .task .donedate { font-size: 0.72rem; color: var(--fg-dim); white-space: nowrap; line-height: 1.7; }
+  .donegroup { padding: 0 10px 10px; }
+  .donegroup summary {
+    cursor: pointer; list-style: none; color: var(--fg-dim); font-size: 0.78rem; letter-spacing: 0.06em;
+    text-transform: uppercase; padding: 6px 8px; border-radius: 6px;
+  }
+  .donegroup summary::-webkit-details-marker { display: none; }
+  .donegroup summary::before { content: "▸ "; }
+  .donegroup[open] summary::before { content: "▾ "; }
+  .donegroup summary:hover { color: var(--ok); background: var(--surface-2); }
+  .donegroup ul.tasks { padding: 0; }
+  ul.tasks + .donegroup { margin-top: -8px; }
+
+  .taskedit { display: flex; flex-direction: column; gap: 8px; padding: 8px; margin: 4px 0; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; }
+  .taskedit input, .taskedit textarea {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--fg); padding: 7px 9px; font-size: 0.88rem;
+  }
+  .taskedit input:focus, .taskedit textarea:focus { outline: 2px solid var(--ok); outline-offset: -1px; }
+  .taskedit textarea { min-height: 64px; resize: vertical; }
+  .taskedit .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .taskedit .hint { margin-right: auto; color: var(--fg-dim); font-size: 0.72rem; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 1100;
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px;
+    display: flex; gap: 14px; align-items: center; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    font-size: 0.88rem; max-width: calc(100vw - 32px);
+  }
+  .toast[hidden] { display: none; }
+  .toast span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   .newproject { background: var(--surface); border: 1px dashed var(--border); border-radius: 12px; padding: 16px 18px; }
   .newproject summary { cursor: pointer; font-weight: 700; font-size: 0.92rem; list-style: none; display: flex; align-items: center; gap: 6px; }
@@ -246,22 +355,23 @@
   .swatches { display: flex; gap: 8px; flex-wrap: wrap; }
   .swatch { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
   .swatch.selected { border-color: var(--fg); }
-  .newform button[type="submit"] { align-self: flex-start; background: var(--ok); color: #fff; border: none; border-radius: 7px; padding: 9px 18px; font-size: 0.88rem; font-weight: 700; cursor: pointer; }
+  .newform button[type="submit"] { align-self: flex-start; }
 
   /* Touch screens: no hover, so controls that only appeared on hover stay
      visible, and every control gets a finger-sized (44px) target. */
   @media (pointer: coarse) {
-    .draghandle, .chevron, .iconbtn, .task .del {
+    .draghandle, .chevron, .iconbtn, .task .del, .task .notebtn {
       min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
       font-size: 1.1rem;
     }
-    .category-head .iconbtn, .task .del { opacity: 1; }
+    .category-head .iconbtn, .task .del, .task .notebtn { opacity: 1; }
     .theme-toggle { min-height: 44px; padding: 0 14px; font-size: 12px; }
     .category-head .addinline, .addrow button, .addrow input[type="text"], .newform input[type="text"],
-    .newform button[type="submit"], .addcategory { min-height: 44px; }
+    .newform button[type="submit"], .addcategory, .btn, .toolbar input[type="search"] { min-height: 44px; }
     .category-head { padding: 6px 10px; gap: 4px 6px; }
     .panel-head { padding: 6px 10px; gap: 4px 6px; }
     .task { align-items: center; padding: 2px 8px; }
+    .donegroup .task.done { padding-left: 62px; }
     .swatch { width: 36px; height: 36px; }
   }
 
@@ -275,6 +385,8 @@
   <div class="topbar">
     <div class="prompt mono">$ stacklog status<span class="cursor"></span></div>
     <div class="controls">
+      <button type="button" class="theme-toggle" id="reportBtn"></button>
+      <button type="button" class="theme-toggle" id="tagsBtn"></button>
       <button type="button" class="theme-toggle" id="themeBtn"></button>
       <button type="button" class="theme-toggle" id="langBtn"></button>
     </div>
@@ -282,8 +394,6 @@
   <h1>Stacklog</h1>
   <p class="sub" id="subtitle">status de tudo que você tá construindo.</p>
 </div>
-
-<div id="categoriesRoot"></div>
 
 <div class="summarybar" id="summarybar">
   <div>
@@ -293,6 +403,38 @@
   <div class="track"><span id="overallTrack" style="width:0%"></span></div>
   <div class="biglabel mono" id="overallPct">–</div>
 </div>
+
+<div class="toolbar">
+  <input type="search" id="searchInput" autocomplete="off">
+  <button type="button" class="theme-toggle" id="doneToggle"></button>
+</div>
+
+<section class="report" id="reportBox" hidden>
+  <div class="report-head">
+    <h2 id="reportTitle"></h2>
+    <div class="range">
+      <input type="date" id="reportSince">
+      <span>→</span>
+      <input type="date" id="reportUntil">
+      <button type="button" class="theme-toggle" id="reportCopy"></button>
+    </div>
+  </div>
+  <div id="reportBody"></div>
+</section>
+
+<section class="report" id="tagsBox" hidden>
+  <div class="report-head">
+    <h2 id="tagsTitle"></h2>
+    <div class="range">
+      <input type="text" id="newTagInput" autocomplete="off">
+      <button type="button" class="theme-toggle" id="newTagBtn"></button>
+    </div>
+  </div>
+  <div id="tagsBody"></div>
+</section>
+<datalist id="tagList"></datalist>
+
+<div id="categoriesRoot"></div>
 
 <div id="newCategoryHost">
   <button type="button" class="addcategory" id="newCategoryBtn">+ nova categoria</button>
@@ -316,6 +458,11 @@
     </form>
   </details>
 </template>
+
+<div class="toast" id="toast" role="status" hidden>
+  <span id="toastText"></span>
+  <button type="button" class="btn primary" id="toastUndo"></button>
+</div>
 
 <footer>
   <span id="footerText">self-hosted · dados em /data/stacklog.db · </span><a href="https://github.com/juliomauro/stacklog" target="_blank" rel="noopener">github.com/juliomauro/stacklog</a>
@@ -358,7 +505,49 @@
       removeTask: "remover",
       removeItem: "remover item",
       themeDark: "◈ escuro",
-      themeLight: "◈ claro"
+      themeLight: "◈ claro",
+      reportBtn: "◈ relatório",
+      reportClose: "◈ fechar relatório",
+      reportTitle: "Relatório",
+      reportCopy: "copiar",
+      reportCopied: "copiado",
+      reportDone: "Concluídas no período ({n})",
+      reportNoneDone: "Nada concluído nesse período.",
+      reportNotes: "Observações em aberto ({n})",
+      reportNoneNotes: "Nenhuma tarefa aberta com observação.",
+      editTask: "editar tarefa e observações (ou duplo clique no texto)",
+      notePlaceholder: "observações (opcional)",
+      save: "salvar",
+      cancel: "cancelar",
+      editHint: "Enter salva o título · Ctrl+Enter salva · Esc cancela",
+      searchPlaceholder: "buscar tarefas, observações, projetos...",
+      noMatches: 'Nada encontrado para "{q}".',
+      showDone: "◈ mostrar concluídas",
+      hideDone: "◈ esconder concluídas",
+      doneGroup: "concluídas ({n})",
+      taskRemoved: "Tarefa removida: {title}",
+      archiveProject: "arquivar projeto (sai do quadro, continua na busca e no relatório)",
+      archiveSuggest: "tudo concluído: arquivar projeto",
+      unarchiveProject: "desarquivar projeto",
+      archivedSection: "Arquivados",
+      addLink: "adicionar link (Ex: ticket no Jira)",
+      linkPlaceholder: "https://...",
+      linkHint: "clique abre · duplo clique edita",
+      tagsBtn: "◈ tags",
+      tagsClose: "◈ fechar tags",
+      tagsTitle: "Tags",
+      newTagPlaceholder: "nova tag",
+      addTag: "adicionar",
+      noTagsYet: "Nenhuma tag ainda. Crie a primeira acima.",
+      tagRenameHint: "edite o nome e tecle Enter; usar o nome de outra tag junta as duas",
+      tagFilter: "mostrar os projetos com esta tag",
+      deleteTag: "excluir tag",
+      confirmDeleteTag: 'Excluir a tag "{name}"? Ela sai de {n} projeto(s), que ficam sem tag.',
+      confirmMergeTag: 'Já existe a tag "{to}". Juntar "{from}" com ela? Os projetos de "{from}" passam para "{to}".',
+      confirmNewTag: 'A tag "{name}" ainda não existe. Criar?',
+      undo: "desfazer",
+      doneOn: "concluída em {date}",
+      since: "desde {date}"
     },
     en: {
       subtitle: "status of everything you're building.",
@@ -394,7 +583,49 @@
       removeTask: "remove",
       removeItem: "remove item",
       themeDark: "◈ dark",
-      themeLight: "◈ light"
+      themeLight: "◈ light",
+      reportBtn: "◈ report",
+      reportClose: "◈ close report",
+      reportTitle: "Report",
+      reportCopy: "copy",
+      reportCopied: "copied",
+      reportDone: "Done in the period ({n})",
+      reportNoneDone: "Nothing done in this period.",
+      reportNotes: "Open notes ({n})",
+      reportNoneNotes: "No open task has notes.",
+      editTask: "edit task and notes (or double-click the text)",
+      notePlaceholder: "notes (optional)",
+      save: "save",
+      cancel: "cancel",
+      editHint: "Enter saves the title · Ctrl+Enter saves · Esc cancels",
+      searchPlaceholder: "search tasks, notes, projects...",
+      noMatches: 'Nothing found for "{q}".',
+      showDone: "◈ show done",
+      hideDone: "◈ hide done",
+      doneGroup: "done ({n})",
+      taskRemoved: "Task removed: {title}",
+      archiveProject: "archive project (leaves the board, stays in search and report)",
+      archiveSuggest: "all done: archive project",
+      unarchiveProject: "unarchive project",
+      archivedSection: "Archived",
+      addLink: "add link (Ex: Jira ticket)",
+      linkPlaceholder: "https://...",
+      linkHint: "click opens · double-click edits",
+      tagsBtn: "◈ tags",
+      tagsClose: "◈ close tags",
+      tagsTitle: "Tags",
+      newTagPlaceholder: "new tag",
+      addTag: "add",
+      noTagsYet: "No tags yet. Create the first one above.",
+      tagRenameHint: "edit the name and press Enter; using another tag's name merges them",
+      tagFilter: "show projects with this tag",
+      deleteTag: "delete tag",
+      confirmDeleteTag: 'Delete tag "{name}"? It is removed from {n} project(s), which are left without a tag.',
+      confirmMergeTag: 'Tag "{to}" already exists. Merge "{from}" into it? Projects tagged "{from}" move to "{to}".',
+      confirmNewTag: 'Tag "{name}" does not exist yet. Create it?',
+      undo: "undo",
+      doneOn: "done on {date}",
+      since: "since {date}"
     }
   };
 
@@ -421,6 +652,16 @@
   }
 
   const themeBtn = document.getElementById("themeBtn");
+  const reportBtn = document.getElementById("reportBtn");
+  const reportBox = document.getElementById("reportBox");
+  const reportSince = document.getElementById("reportSince");
+  const reportUntil = document.getElementById("reportUntil");
+  const reportCopy = document.getElementById("reportCopy");
+  const searchInput = document.getElementById("searchInput");
+  const doneToggle = document.getElementById("doneToggle");
+  const tagsBtn = document.getElementById("tagsBtn");
+  const tagsBox = document.getElementById("tagsBox");
+  const newTagInput = document.getElementById("newTagInput");
   const langBtn = document.getElementById("langBtn");
 
   function currentTheme() {
@@ -447,6 +688,15 @@
     document.getElementById("overallLabel").textContent = t("done");
     document.getElementById("newCategoryBtn").textContent = t("addCategory");
     document.getElementById("footerText").textContent = t("footerText");
+    document.getElementById("reportTitle").textContent = t("reportTitle");
+    document.getElementById("reportCopy").textContent = t("reportCopy");
+    document.getElementById("searchInput").placeholder = t("searchPlaceholder");
+    document.getElementById("toastUndo").textContent = t("undo");
+    document.getElementById("tagsTitle").textContent = t("tagsTitle");
+    document.getElementById("newTagInput").placeholder = t("newTagPlaceholder");
+    document.getElementById("newTagBtn").textContent = t("addTag");
+    updateTagsBtn();
+    updateReportBtn();
     updateThemeBtn();
     updateLangBtn();
   }
@@ -455,6 +705,7 @@
     try { localStorage.setItem("stacklog_lang", LANG); } catch (e) { /* ignore */ }
     applyStaticStrings();
     render();
+    if (!reportBox.hidden) loadReport();
   }
 
   try {
@@ -464,6 +715,25 @@
   applyStaticStrings();
   themeBtn.addEventListener("click", toggleTheme);
   langBtn.addEventListener("click", toggleLang);
+  reportBtn.addEventListener("click", toggleReport);
+  reportSince.addEventListener("change", loadReport);
+  reportUntil.addEventListener("change", loadReport);
+  reportCopy.addEventListener("click", copyReport);
+  searchInput.addEventListener("input", () => { query = searchInput.value.trim().toLowerCase(); render(); });
+  searchInput.addEventListener("keydown", e => {
+    if (e.key === "Escape") { searchInput.value = ""; query = ""; render(); }
+  });
+  tagsBtn.addEventListener("click", () => { tagsBox.hidden = !tagsBox.hidden; updateTagsBtn(); renderTags(); });
+  const submitNewTag = () => { const v = newTagInput.value.trim(); if (v) { createTagEntry(v); newTagInput.value = ""; } };
+  document.getElementById("newTagBtn").addEventListener("click", submitNewTag);
+  newTagInput.addEventListener("keydown", e => { if (e.key === "Enter") submitNewTag(); });
+  doneToggle.addEventListener("click", () => {
+    const withDone = activeProjects().filter(p => tasks.some(x => x.project_id === p.id && x.done));
+    const allOpen = withDone.length > 0 && withDone.every(p => doneOpenIds.has(p.id));
+    if (allOpen) doneOpenIds.clear(); else withDone.forEach(p => doneOpenIds.add(p.id));
+    saveSet("stacklog_done_open", doneOpenIds);
+    render();
+  });
 
   const PALETTE = ["#5fb3a8", "#d9a15b", "#cf8a94", "#7fa8d9", "#b78fd9", "#9ccf6e", "#e0c45f", "#8b958f"];
 
@@ -472,6 +742,7 @@
   let categories = [];
   let projects = [];
   let tasks = [];
+  let tags = [];
   const UNCATEGORIZED = null; // pseudo-category id for projects with no category_id
 
   function loadExpanded() {
@@ -508,8 +779,32 @@
     saveCategoryCollapsed();
   }
 
-  function tasksFor(projectId) { return tasks.filter(t => t.project_id === projectId); }
-  function projectsFor(categoryId) { return projects.filter(p => (p.category_id || null) === categoryId); }
+  function loadSet(key) {
+    try { return new Set(JSON.parse(localStorage.getItem(key) || "[]")); }
+    catch (e) { return new Set(); }
+  }
+  function saveSet(key, set) {
+    try { localStorage.setItem(key, JSON.stringify([...set])); } catch (e) { /* ignore */ }
+  }
+  // projects whose "done" group is open; done tasks start hidden
+  const doneOpenIds = loadSet("stacklog_done_open");
+  let query = "";          // search text, lower case
+  let editing = null;      // { id, title, note, focus } while a task is edited inline
+  let clickTimer = 0;      // tells a single click on a task (toggle) from a double click (edit)
+
+  function tasksFor(projectId) {
+    return tasks.filter(t => t.project_id === projectId)
+      .sort((a, b) => (a.order_index || 0) - (b.order_index || 0) || a.created_at - b.created_at);
+  }
+  function taskMatches(task) {
+    return task.title.toLowerCase().includes(query) || (task.note || "").toLowerCase().includes(query);
+  }
+  function projectNameMatches(p) {
+    return p.name.toLowerCase().includes(query) || (p.tag || "").toLowerCase().includes(query);
+  }
+  function projectMatches(p) { return projectNameMatches(p) || tasksFor(p.id).some(taskMatches); }
+  function projectsFor(categoryId) { return projects.filter(p => !p.archived_at && (p.category_id || null) === categoryId); }
+  function activeProjects() { return projects.filter(p => !p.archived_at); }
 
   let runningTotals = { done: 0, all: 0 };
 
@@ -529,18 +824,47 @@
 
     sections.forEach(section => buildCategorySection(section));
 
+    if (query && !categoriesRoot.querySelector(".category-section") && !projects.some(p => p.archived_at && projectMatches(p))) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = t("noMatches", { q: query });
+      categoriesRoot.appendChild(empty);
+    }
+
+    buildArchivedSection();
+
+    // overall numbers cover every task of the board (not archived), whatever the search shows
+    const activeIds = new Set(activeProjects().map(p => p.id));
+    const boardTasks = tasks.filter(x => activeIds.has(x.project_id));
+    runningTotals.all = boardTasks.length;
+    runningTotals.done = boardTasks.filter(x => x.done).length;
     document.getElementById("overallCount").textContent = `${runningTotals.done}/${runningTotals.all}`;
     const overallPct = runningTotals.all ? Math.round(runningTotals.done / runningTotals.all * 100) : 0;
     document.getElementById("overallTrack").style.width = overallPct + "%";
     document.getElementById("overallPct").textContent = overallPct + "%";
+
+    const withDone = activeProjects().filter(p => tasks.some(x => x.project_id === p.id && x.done));
+    const allOpen = withDone.length > 0 && withDone.every(p => doneOpenIds.has(p.id));
+    doneToggle.textContent = t(allOpen ? "hideDone" : "showDone");
+    renderTags();
+
+    if (editing && editing.focus) {
+      editing.focus = false;
+      const inp = categoriesRoot.querySelector(".taskedit input");
+      if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+    }
   }
 
   function buildCategorySection(section) {
-    const list = projectsFor(section.id);
+    let list = projectsFor(section.id);
     if (list.length === 0 && section.id === UNCATEGORIZED && categories.length > 0) return; // hide empty "no category" once real categories exist
+    if (query) {
+      list = list.filter(projectMatches);
+      if (!list.length) return;
+    }
 
     const sectionEl = document.createElement("div");
-    sectionEl.className = "category-section" + (categoryCollapsedIds.has(section.id) ? "" : " expanded");
+    sectionEl.className = "category-section" + (query || !categoryCollapsedIds.has(section.id) ? " expanded" : "");
     sectionEl.dataset.catId = section.id || "";
     if (section.editable) sectionEl.dataset.draggable = "";
 
@@ -659,6 +983,57 @@
     categoriesRoot.appendChild(sectionEl);
   }
 
+  const archivedOpen = { value: (() => { try { return localStorage.getItem("stacklog_archived_open") === "1"; } catch (e) { return false; } })() };
+  function buildArchivedSection() {
+    let list = projects.filter(p => p.archived_at).sort((a, b) => b.archived_at - a.archived_at);
+    if (query) list = list.filter(projectMatches);
+    if (!list.length) return;
+    const sectionEl = document.createElement("div");
+    sectionEl.className = "category-section archived-section" + (query || archivedOpen.value ? " expanded" : "");
+    const head = document.createElement("div");
+    head.className = "category-head";
+    const chevron = el("button", "chevron", "▸");
+    chevron.type = "button";
+    const h2 = el("h2", null, t("archivedSection"));
+    const count = el("span", "catcount mono", list.length === 1 ? t("projectsCountOne") : t("projectsCount", { n: list.length }));
+    head.append(chevron, h2, count);
+    head.addEventListener("click", () => {
+      archivedOpen.value = !archivedOpen.value;
+      try { localStorage.setItem("stacklog_archived_open", archivedOpen.value ? "1" : "0"); } catch (e) { /* ignore */ }
+      sectionEl.classList.toggle("expanded", archivedOpen.value);
+    });
+    sectionEl.appendChild(head);
+    const body = el("div", "category-body");
+    const inner = el("div", "category-body-inner");
+    const panelsEl = el("div", "panels");
+    inner.appendChild(panelsEl);
+    body.appendChild(inner);
+    sectionEl.appendChild(body);
+    list.forEach(p => buildProjectPanel(p, panelsEl));
+    categoriesRoot.appendChild(sectionEl);
+  }
+
+  // turns http(s) URLs inside a text into links
+  const URL_RE = /https?:\/\/[^\s<>"]+[^\s<>".,;:!?)\]]/g;
+  function linkify(container, text) {
+    let last = 0;
+    for (const m of text.matchAll(URL_RE)) {
+      if (m.index > last) container.appendChild(document.createTextNode(text.slice(last, m.index)));
+      const a = document.createElement("a");
+      a.href = m[0]; a.target = "_blank"; a.rel = "noopener"; a.textContent = m[0];
+      container.appendChild(a);
+      last = m.index + m[0].length;
+    }
+    if (last < text.length) container.appendChild(document.createTextNode(text.slice(last)));
+  }
+  function shortLink(url) {
+    try {
+      const u = new URL(url);
+      const seg = u.pathname.split("/").filter(Boolean).pop();
+      return seg ? decodeURIComponent(seg) : u.hostname;
+    } catch (e) { return url; }
+  }
+
   function openInlineProjectForm(sectionEl, categoryId) {
     if (!sectionEl.classList.contains("expanded")) toggleCategorySection(sectionEl, categoryId);
     const existing = sectionEl.querySelector(".newproject");
@@ -670,6 +1045,7 @@
     node.querySelector("summary").textContent = t("newProject");
     node.querySelector(".npName").placeholder = t("projectNamePlaceholder");
     node.querySelector(".npTag").placeholder = t("projectTagPlaceholder");
+    node.querySelector(".npTag").setAttribute("list", "tagList");
     node.querySelector("button[type=submit]").textContent = t("createProject");
     const swatchesHost = node.querySelector(".swatches");
     let localColor = PALETTE[0];
@@ -687,8 +1063,9 @@
     form.addEventListener("submit", e => {
       e.preventDefault();
       const name = form.querySelector(".npName").value.trim();
-      const tag = form.querySelector(".npTag").value.trim();
       if (!name) return;
+      const tag = resolveTag(form.querySelector(".npTag").value);
+      if (tag === null) return;
       createProject(name, tag, localColor, categoryId);
       details.remove();
     });
@@ -700,14 +1077,14 @@
   function buildProjectPanel(p, panelsEl) {
     const list = tasksFor(p.id);
       const panel = document.createElement("div");
-      panel.className = "panel" + (expandedIds.has(p.id) ? " expanded" : "");
+      panel.className = "panel" + (query || expandedIds.has(p.id) ? " expanded" : "") + (p.archived_at ? " archived" : "");
       panel.style.setProperty("--accent", p.color || PALETTE[0]);
       panel.dataset.id = p.id;
 
       const head = document.createElement("div");
       head.className = "panel-head";
       head.addEventListener("click", e => {
-        if (e.target.closest(".iconbtn, .draghandle") || e.target.isContentEditable) return;
+        if (e.target.closest(".iconbtn, .draghandle, input, .chip, .linkchip") || e.target.isContentEditable) return;
         toggleExpand(panel, p.id);
       });
 
@@ -741,13 +1118,34 @@
       const chip = document.createElement("span");
       chip.className = "chip mono";
       chip.textContent = p.tag || t("noTag");
-      chip.contentEditable = "false";
-      chip.addEventListener("dblclick", () => { chip.contentEditable = "true"; chip.focus(); });
-      chip.addEventListener("blur", () => {
-        chip.contentEditable = "false";
-        const v = chip.textContent.trim();
-        if (v !== (p.tag || t("noTag"))) { p.tag = v === t("noTag") ? "" : v; updateProject(p.id, { tag: p.tag }); }
-        chip.textContent = p.tag || t("noTag");
+      chip.title = t("renameHint");
+      // double click swaps the chip for an input that autocompletes from the tag list
+      chip.addEventListener("dblclick", () => {
+        const inp = document.createElement("input");
+        inp.className = "chipedit";
+        inp.setAttribute("list", "tagList");
+        inp.value = p.tag || "";
+        chip.replaceWith(inp);
+        inp.focus();
+        let finished = false;
+        const finish = async save => {
+          if (finished) return;
+          finished = true;
+          if (save) {
+            const v = resolveTag(inp.value);
+            if (v !== null && v !== (p.tag || "")) {
+              p.tag = v;
+              await updateProject(p.id, { tag: v });
+              await refreshTags();
+            }
+          }
+          render();
+        };
+        inp.addEventListener("keydown", e => {
+          if (e.key === "Enter") { e.preventDefault(); finish(true); }
+          else if (e.key === "Escape") finish(false);
+        });
+        inp.addEventListener("blur", () => finish(true));
       });
 
       const delBtn = document.createElement("button");
@@ -758,10 +1156,71 @@
         if (confirm(t("confirmDeleteProject", { name: p.name }))) deleteProject(p.id);
       });
 
-      head.appendChild(handle);
+      // link: a chip that opens it (double click edits), or a button to add one
+      const editLink = anchorEl => {
+        const inp = document.createElement("input");
+        inp.className = "chipedit";
+        inp.placeholder = t("linkPlaceholder");
+        inp.value = p.link || "";
+        anchorEl.replaceWith(inp);
+        inp.focus();
+        let finished = false;
+        const finish = async save => {
+          if (finished) return;
+          finished = true;
+          if (save && inp.value.trim() !== (p.link || "")) {
+            const res = await fetch(`/api/projects/${encodeURIComponent(p.id)}`, {
+              method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ link: inp.value.trim() })
+            });
+            if (res.ok) await loadAll(); else render();
+            return;
+          }
+          render();
+        };
+        inp.addEventListener("keydown", e => {
+          if (e.key === "Enter") { e.preventDefault(); finish(true); }
+          else if (e.key === "Escape") finish(false);
+        });
+        inp.addEventListener("blur", () => finish(true));
+      };
+      let linkEl;
+      if (p.link) {
+        linkEl = document.createElement("a");
+        linkEl.className = "linkchip mono";
+        linkEl.href = p.link;
+        linkEl.target = "_blank";
+        linkEl.rel = "noopener";
+        linkEl.textContent = "🔗 " + shortLink(p.link);
+        linkEl.title = p.link + "\n" + t("linkHint");
+        let linkTimer = 0;
+        linkEl.addEventListener("click", e => {
+          e.preventDefault();
+          if (e.detail > 1) return;
+          clearTimeout(linkTimer);
+          linkTimer = setTimeout(() => window.open(p.link, "_blank", "noopener"), 230);
+        });
+        linkEl.addEventListener("dblclick", e => { e.preventDefault(); clearTimeout(linkTimer); editLink(linkEl); });
+      } else {
+        linkEl = el("button", "iconbtn linkbtn", "🔗");
+        linkEl.type = "button";
+        linkEl.title = t("addLink");
+        linkEl.style.filter = "grayscale(1)";
+        linkEl.style.opacity = "0.5";
+        linkEl.addEventListener("click", () => editLink(linkEl));
+      }
+
+      const allDone = list.length > 0 && list.every(x => x.done);
+      const archBtn = el("button", "iconbtn archbtn" + (!p.archived_at && allDone ? " suggest" : ""), p.archived_at ? "⤒" : "⤓");
+      archBtn.type = "button";
+      archBtn.title = t(p.archived_at ? "unarchiveProject" : (allDone ? "archiveSuggest" : "archiveProject"));
+      archBtn.addEventListener("click", () => setArchived(p, !p.archived_at));
+
+      if (!p.archived_at) head.appendChild(handle);
       head.appendChild(chevron);
       head.appendChild(h2);
       head.appendChild(chip);
+      head.appendChild(linkEl);
+      head.appendChild(archBtn);
       head.appendChild(delBtn);
       panel.appendChild(head);
 
@@ -796,23 +1255,36 @@
         runningTotals.done += doneCount;
         runningTotals.all += list.length;
 
-        const ul = document.createElement("ul");
-        ul.className = "tasks";
-        list.forEach(task => {
-          const li = document.createElement("li");
-          li.className = "task" + (task.done ? " done" : "");
-          const cbId = "cb-" + task.id;
-          li.innerHTML = `
-            <input type="checkbox" id="${cbId}" ${task.done ? "checked" : ""}>
-            <label for="${cbId}"></label>
-            <button class="del" title="${t("removeTask")}" aria-label="${t("removeItem")}">✕</button>
-          `;
-          li.querySelector("label").textContent = task.title;
-          li.querySelector("input").addEventListener("change", e => toggleTask(task.id, e.target.checked));
-          li.querySelector(".del").addEventListener("click", () => deleteTask(task.id));
-          ul.appendChild(li);
-        });
-        bodyInner.appendChild(ul);
+        // while searching, a project whose name matches shows all its tasks
+        const visible = query && !projectNameMatches(p) ? list.filter(taskMatches) : list;
+        const openTasks = visible.filter(x => !x.done);
+        const doneTasks = visible.filter(x => x.done);
+        if (openTasks.length) {
+          const ul = document.createElement("ul");
+          ul.className = "tasks";
+          openTasks.forEach(task => ul.appendChild(buildTaskRow(task)));
+          bodyInner.appendChild(ul);
+        }
+        if (doneTasks.length) {
+          const details = document.createElement("details");
+          details.className = "donegroup";
+          details.open = !!query || doneOpenIds.has(p.id);
+          const summary = document.createElement("summary");
+          summary.textContent = t("doneGroup", { n: doneTasks.length });
+          summary.addEventListener("click", () => {
+            if (query) return;
+            if (details.open) doneOpenIds.delete(p.id); else doneOpenIds.add(p.id); // state before the toggle
+            saveSet("stacklog_done_open", doneOpenIds);
+            const withDone = activeProjects().filter(pp => tasks.some(x => x.project_id === pp.id && x.done));
+            doneToggle.textContent = t(withDone.every(pp => doneOpenIds.has(pp.id)) ? "hideDone" : "showDone");
+          });
+          details.appendChild(summary);
+          const ul = document.createElement("ul");
+          ul.className = "tasks";
+          doneTasks.forEach(task => ul.appendChild(buildTaskRow(task)));
+          details.appendChild(ul);
+          bodyInner.appendChild(details);
+        }
       }
 
       const addrow = document.createElement("div");
@@ -835,6 +1307,184 @@
 
       panel.appendChild(body);
       panelsEl.appendChild(panel);
+  }
+
+  function buildTaskRow(task) {
+    const li = document.createElement("li");
+    li.dataset.id = task.id;
+    if (editing && editing.id === task.id) {
+      li.className = "task editing";
+      const box = document.createElement("div");
+      box.className = "taskedit";
+      box.style.flex = "1";
+      const ti = document.createElement("input");
+      ti.type = "text";
+      ti.value = editing.title;
+      const na = document.createElement("textarea");
+      na.placeholder = t("notePlaceholder");
+      na.value = editing.note;
+      const row = document.createElement("div");
+      row.className = "row";
+      const hint = el("span", "hint", t("editHint"));
+      const cancelBtn = el("button", "btn", t("cancel"));
+      const saveBtn = el("button", "btn primary", t("save"));
+      cancelBtn.type = saveBtn.type = "button";
+      row.append(hint, cancelBtn, saveBtn);
+      box.append(ti, na, row);
+      li.appendChild(box);
+      ti.addEventListener("input", () => { editing.title = ti.value; });
+      na.addEventListener("input", () => { editing.note = na.value; });
+      const onKey = e => {
+        if (e.key === "Escape") { e.preventDefault(); closeEditor(); }
+        else if (e.key === "Enter" && (e.target === ti || e.ctrlKey || e.metaKey)) { e.preventDefault(); saveEditor(); }
+      };
+      ti.addEventListener("keydown", onKey);
+      na.addEventListener("keydown", onKey);
+      cancelBtn.addEventListener("click", closeEditor);
+      saveBtn.addEventListener("click", saveEditor);
+      return li;
+    }
+
+    const hasNote = !!task.note;
+    li.className = "task" + (task.done ? " done" : "") + (hasNote ? " hasnote" : "");
+    const cbId = "cb-" + task.id;
+    li.innerHTML = `
+      ${task.done ? "" : `<span class="draghandle tdrag" title="${t("dragToReorder")}" aria-hidden="true">⠿</span>`}
+      <input type="checkbox" id="${cbId}" ${task.done ? "checked" : ""}>
+      <label for="${cbId}"></label>
+      ${task.done && task.done_at ? `<span class="donedate">${fmtShort(task.done_at)}</span>` : ""}
+      <button class="notebtn" title="${t("editTask")}" aria-label="${t("editTask")}">✎</button>
+      <button class="del" title="${t("removeTask")}" aria-label="${t("removeItem")}">✕</button>
+    `;
+    const lbl = li.querySelector("label");
+    lbl.textContent = task.title;
+    if (task.done && task.done_at) lbl.title = t("doneOn", { date: fmtDate(task.done_at) });
+    if (hasNote) {
+      const note = document.createElement("span");
+      note.className = "notetext";
+      linkify(note, task.note);
+      lbl.appendChild(note);
+    }
+    // a single click toggles (after a short wait), a double click edits instead
+    lbl.addEventListener("click", e => {
+      if (e.target.closest("a")) return; // a link in the note opens normally
+      e.preventDefault();
+      if (e.target.closest(".notetext")) { openEditor(task); return; }
+      if (e.detail > 1) return;
+      clearTimeout(clickTimer);
+      clickTimer = setTimeout(() => toggleTask(task.id, !task.done), 230);
+    });
+    lbl.addEventListener("dblclick", e => { e.preventDefault(); clearTimeout(clickTimer); openEditor(task); });
+    const handle = li.querySelector(".tdrag");
+    if (handle) handle.addEventListener("pointerdown", e => beginDrag(e, "task", task.id, li, li));
+    li.querySelector(".notebtn").addEventListener("click", () => openEditor(task));
+    li.querySelector("input").addEventListener("change", e => toggleTask(task.id, e.target.checked));
+    li.querySelector(".del").addEventListener("click", () => deleteTask(task.id));
+    return li;
+  }
+
+  function openEditor(task) {
+    editing = { id: task.id, title: task.title, note: task.note || "", focus: true };
+    render();
+  }
+  function closeEditor() { editing = null; render(); }
+  function saveEditor() {
+    if (!editing) return;
+    const title = editing.title.trim();
+    if (!title) return;
+    const id = editing.id;
+    const note = editing.note.trim();
+    editing = null;
+    patchTask(id, { title, note });
+  }
+
+  // ---------- tags ----------
+  function findTag(name) {
+    const n = (name || "").trim().toLowerCase();
+    return tags.find(x => x.name.toLowerCase() === n);
+  }
+  // Registry spelling for a typed tag; asks before creating a new one.
+  // Returns "" for no tag, or null when the person cancels.
+  function resolveTag(raw) {
+    const v = (raw || "").trim();
+    if (!v) return "";
+    const m = findTag(v);
+    if (m) return m.name;
+    return confirm(t("confirmNewTag", { name: v })) ? v : null;
+  }
+  function projectsWithTag(name) {
+    const n = name.toLowerCase();
+    return projects.filter(p => (p.tag || "").toLowerCase() === n).length;
+  }
+  function updateTagsBtn() { tagsBtn.textContent = t(tagsBox.hidden ? "tagsBtn" : "tagsClose"); }
+  async function refreshTags() {
+    tags = await (await fetch("/api/tags")).json();
+  }
+  function renderTags() {
+    const list = document.getElementById("tagList");
+    list.innerHTML = "";
+    tags.forEach(x => { const o = document.createElement("option"); o.value = x.name; list.appendChild(o); });
+    if (tagsBox.hidden) return;
+    const body = document.getElementById("tagsBody");
+    body.innerHTML = "";
+    if (!tags.length) { body.appendChild(el("div", "empty", t("noTagsYet"))); return; }
+    body.appendChild(el("div", "when", t("tagRenameHint")));
+    const wrap = el("div", "taglist");
+    tags.forEach(tag => {
+      const row = el("div", "tagrow");
+      const inp = document.createElement("input");
+      inp.value = tag.name;
+      inp.size = Math.max(2, tag.name.length + 1);
+      inp.addEventListener("input", () => { inp.size = Math.max(2, inp.value.length + 1); });
+      let busy = false;
+      const commit = () => {
+        if (busy) return;
+        const v = inp.value.trim();
+        if (!v || v === tag.name) { inp.value = tag.name; return; }
+        const other = findTag(v);
+        if (other && other.id !== tag.id && !confirm(t("confirmMergeTag", { from: tag.name, to: other.name }))) {
+          inp.value = tag.name; return;
+        }
+        busy = true;
+        renameTagEntry(tag, v);
+      };
+      inp.addEventListener("keydown", e => {
+        if (e.key === "Enter") { e.preventDefault(); inp.blur(); }
+        else if (e.key === "Escape") { inp.value = tag.name; inp.blur(); }
+      });
+      inp.addEventListener("blur", commit);
+      const n = projectsWithTag(tag.name);
+      const count = el("span", "tcount", n === 1 ? t("projectsCountOne") : t("projectsCount", { n }));
+      count.title = t("tagFilter");
+      count.addEventListener("click", () => {
+        searchInput.value = tag.name; query = tag.name.toLowerCase(); render();
+      });
+      const del = el("button", "iconbtn", "✕");
+      del.type = "button";
+      del.title = t("deleteTag");
+      del.addEventListener("click", () => {
+        if (confirm(t("confirmDeleteTag", { name: tag.name, n }))) deleteTagEntry(tag);
+      });
+      row.append(inp, count, del);
+      wrap.appendChild(row);
+    });
+    body.appendChild(wrap);
+  }
+  async function createTagEntry(name) {
+    if (findTag(name)) return;
+    await fetch("/api/tags", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) });
+    await refreshTags();
+    render();
+  }
+  async function renameTagEntry(tag, name) {
+    await fetch(`/api/tags/${encodeURIComponent(tag.id)}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name })
+    });
+    await loadAll(); // project tags changed on the server
+  }
+  async function deleteTagEntry(tag) {
+    await fetch(`/api/tags/${encodeURIComponent(tag.id)}`, { method: "DELETE" });
+    await loadAll();
   }
 
   // ---------- drag & drop ----------
@@ -906,10 +1556,23 @@
   function updateDropTarget() {
     clearDropMarks();
     drag.target = null;
+    if (drag.kind === "task") {
+      // only within the same list (same project, open tasks)
+      const el = document.elementFromPoint(drag.x, drag.y);
+      const li = el && el.closest(".task");
+      if (li && li.dataset.id && li.dataset.id !== drag.id && li.parentElement === drag.srcEl.parentElement) {
+        const r = li.getBoundingClientRect();
+        const after = drag.y > r.top + r.height / 2;
+        li.classList.add(after ? "drop-after" : "drop-before");
+        drag.target = { taskId: li.dataset.id, after };
+      }
+      return;
+    }
     if (drag.kind === "project") {
       // the ghost has pointer-events: none, so this finds what is under it
       const el = document.elementFromPoint(drag.x, drag.y);
       const panel = el && el.closest(".panel");
+      if (el && el.closest(".archived-section")) return; // the archive is not a drop target
       if (panel && panel.dataset.id && panel.dataset.id !== drag.id) {
         panel.classList.add("drag-over");
         drag.target = { panelId: panel.dataset.id };
@@ -952,7 +1615,9 @@
     document.body.classList.remove("is-dragging", "dragging-category");
     clearDropMarks();
     if (!apply || !d.started || !d.target) return;
-    if (d.kind === "project") {
+    if (d.kind === "task") {
+      reorderTask(d.id, d.target.taskId, d.target.after);
+    } else if (d.kind === "project") {
       if (d.target.panelId) reorderProjects(d.id, d.target.panelId);
       else moveProjectToCategory(d.id, d.target.categoryId);
     } else {
@@ -980,27 +1645,192 @@
   }
 
   async function loadAll() {
-    const [cr, pr, tr] = await Promise.all([fetch("/api/categories"), fetch("/api/projects"), fetch("/api/tasks")]);
+    const [cr, pr, tr, gr] = await Promise.all([fetch("/api/categories"), fetch("/api/projects"), fetch("/api/tasks"), fetch("/api/tags")]);
     categories = await cr.json();
     projects = await pr.json();
     tasks = await tr.json();
+    tags = await gr.json();
     render();
   }
 
-  async function toggleTask(id, done) {
-    const t = tasks.find(x => x.id === id);
-    if (t) t.done = done;
+  async function patchTask(id, patch) {
+    const task = tasks.find(x => x.id === id);
+    if (task) Object.assign(task, patch);
     render();
-    await fetch(`/api/tasks/${encodeURIComponent(id)}`, {
-      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ done })
+    const res = await fetch(`/api/tasks/${encodeURIComponent(id)}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch)
+    });
+    if (res.ok && task) { Object.assign(task, await res.json()); render(); }
+    if (!reportBox.hidden) loadReport();
+  }
+
+  function toggleTask(id, done) { return patchTask(id, { done }); }
+
+  async function reorderTask(srcId, tgtId, after) {
+    const src = tasks.find(x => x.id === srcId);
+    if (!src) return;
+    const list = tasksFor(src.project_id).filter(x => x.id !== srcId);
+    const i = list.findIndex(x => x.id === tgtId);
+    if (i < 0) return;
+    list.splice(after ? i + 1 : i, 0, src);
+    list.forEach((x, n) => { x.order_index = n; });
+    render();
+    await fetch("/api/tasks/reorder", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: list.map(x => x.id) })
     });
   }
 
-  async function deleteTask(id) {
-    tasks = tasks.filter(x => x.id !== id);
-    render();
-    await fetch(`/api/tasks/${encodeURIComponent(id)}`, { method: "DELETE" });
+  function fmtDate(ms) {
+    return new Date(ms).toLocaleDateString(LANG === "pt" ? "pt-BR" : "en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
   }
+  function fmtShort(ms) {
+    return new Date(ms).toLocaleDateString(LANG === "pt" ? "pt-BR" : "en-GB", { day: "2-digit", month: "2-digit" });
+  }
+  function isoDay(d) {
+    const z = n => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
+  }
+
+  // ---------- report ----------
+  let reportText = "";
+  function updateReportBtn() { reportBtn.textContent = t(reportBox.hidden ? "reportBtn" : "reportClose"); }
+  function toggleReport() {
+    reportBox.hidden = !reportBox.hidden;
+    if (!reportBox.hidden) {
+      if (!reportUntil.value) {
+        const now = new Date();
+        reportUntil.value = isoDay(now);
+        reportSince.value = isoDay(new Date(now.getTime() - 6 * 86400000));
+      }
+      loadReport();
+    }
+    updateReportBtn();
+  }
+  async function loadReport() {
+    const qs = new URLSearchParams({ since: reportSince.value, until: reportUntil.value });
+    const res = await fetch("/api/report?" + qs);
+    if (!res.ok) return;
+    renderReport(await res.json());
+  }
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function renderReport(r) {
+    const body = document.getElementById("reportBody");
+    body.innerHTML = "";
+    const lines = [`${t("reportTitle")} ${fmtDate(r.since)} - ${fmtDate(r.until - 1)}`, ""];
+
+    body.appendChild(el("h3", null, t("reportDone", { n: r.done_count })));
+    lines.push(t("reportDone", { n: r.done_count }));
+    if (!r.done.length) {
+      body.appendChild(el("div", "empty", t("reportNoneDone")));
+      lines.push("  " + t("reportNoneDone"));
+    }
+    r.done.forEach(c => {
+      const catName = c.category_name || t("uncategorized");
+      body.appendChild(el("div", "rcat", catName));
+      lines.push("", catName);
+      c.projects.forEach(p => {
+        const pd = el("div", "rproj");
+        const dot = el("span", "dot"); dot.style.background = p.color;
+        pd.appendChild(dot);
+        pd.appendChild(document.createTextNode(p.name + (p.tag ? ` [${p.tag}]` : "")));
+        const ul = el("ul");
+        lines.push(`  ${p.name}${p.tag ? ` [${p.tag}]` : ""}`);
+        p.tasks.forEach(tk => {
+          const li = el("li", null, tk.title + " ");
+          li.appendChild(el("span", "when", fmtDate(tk.done_at)));
+          if (tk.note) { const w = el("span", "who"); linkify(w, tk.note); li.appendChild(w); }
+          ul.appendChild(li);
+          lines.push(`    - ${tk.title} (${fmtDate(tk.done_at)})` + (tk.note ? `\n      ${tk.note}` : ""));
+        });
+        pd.appendChild(ul);
+        body.appendChild(pd);
+      });
+    });
+
+    body.appendChild(el("h3", null, t("reportNotes", { n: r.notes.length })));
+    lines.push("", t("reportNotes", { n: r.notes.length }));
+    if (!r.notes.length) {
+      body.appendChild(el("div", "empty", t("reportNoneNotes")));
+      lines.push("  " + t("reportNoneNotes"));
+    } else {
+      const ul = el("ul");
+      r.notes.forEach(w => {
+        const li = el("li", null, `${w.project_name}: ${w.title} `);
+        li.appendChild(el("span", "when", t("since", { date: fmtDate(w.created_at) })));
+        const who = el("span", "who"); linkify(who, w.note); li.appendChild(who);
+        ul.appendChild(li);
+        lines.push(`  - ${w.project_name}: ${w.title}\n      ${w.note}`);
+      });
+      body.appendChild(ul);
+    }
+    reportText = lines.join("\n");
+  }
+  async function copyReport() {
+    let ok = false;
+    try {
+      // navigator.clipboard only exists on https/localhost; the LAN address is plain http
+      if (navigator.clipboard) { await navigator.clipboard.writeText(reportText); ok = true; }
+    } catch (e) { /* fall back below */ }
+    if (!ok) {
+      const ta = document.createElement("textarea");
+      ta.value = reportText; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+      ta.remove();
+    }
+    if (ok) {
+      reportCopy.textContent = t("reportCopied");
+      setTimeout(() => { reportCopy.textContent = t("reportCopy"); }, 1500);
+    }
+  }
+
+  // Deleting waits a few seconds before reaching the server, so it can be undone.
+  const UNDO_MS = 6000;
+  const pendingDeletes = new Map(); // task id -> { task, idx, timer }
+  let toastFor = null;
+  const toastEl = document.getElementById("toast");
+  const toastText = document.getElementById("toastText");
+  document.getElementById("toastUndo").addEventListener("click", () => { if (toastFor) undoDelete(toastFor); });
+
+  function deleteTask(id) {
+    const idx = tasks.findIndex(x => x.id === id);
+    if (idx < 0) return;
+    const task = tasks[idx];
+    tasks.splice(idx, 1);
+    if (editing && editing.id === id) editing = null;
+    render();
+    pendingDeletes.set(id, { task, idx, timer: setTimeout(() => commitDelete(id), UNDO_MS) });
+    toastFor = id;
+    toastText.textContent = t("taskRemoved", { title: task.title });
+    toastEl.hidden = false;
+  }
+  function hideToastFor(id) { if (toastFor === id) { toastFor = null; toastEl.hidden = true; } }
+  function commitDelete(id, keepalive) {
+    const pd = pendingDeletes.get(id);
+    if (!pd) return;
+    clearTimeout(pd.timer);
+    pendingDeletes.delete(id);
+    hideToastFor(id);
+    fetch(`/api/tasks/${encodeURIComponent(id)}`, { method: "DELETE", keepalive: !!keepalive })
+      .then(() => { if (!keepalive && !reportBox.hidden) loadReport(); });
+  }
+  function undoDelete(id) {
+    const pd = pendingDeletes.get(id);
+    if (!pd) return;
+    clearTimeout(pd.timer);
+    pendingDeletes.delete(id);
+    hideToastFor(id);
+    tasks.splice(Math.min(pd.idx, tasks.length), 0, pd.task);
+    render();
+  }
+  // leaving the page sends the pending deletes right away
+  window.addEventListener("pagehide", () => { [...pendingDeletes.keys()].forEach(id => commitDelete(id, true)); });
 
   async function addTask(projectId, title) {
     const res = await fetch("/api/tasks", {
@@ -1016,6 +1846,12 @@
     await fetch(`/api/projects/${encodeURIComponent(id)}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch)
     });
+  }
+
+  async function setArchived(p, archived) {
+    p.archived_at = archived ? Date.now() : null;
+    render();
+    await updateProject(p.id, { archived });
   }
 
   async function deleteProject(id) {
@@ -1078,6 +1914,7 @@
     });
     const created = await res.json();
     projects.push(created);
+    if (created.tag) await refreshTags();
     expandedIds.add(created.id);
     saveExpanded();
     render();
