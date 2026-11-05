@@ -43,6 +43,32 @@
     --warn: #e0b040;
     color-scheme: dark;
   }
+  /* Amber phosphor CRT: everything in orange tones on black */
+  :root[data-theme="amber"] {
+    --bg: #0d0800; --surface: #140c00; --surface-2: #241600; --border: #6b4400;
+    --fg: #ffb000; --fg-dim: #b37a00; --ok: #ffc23d; --danger: #ff5a36;
+    --glow: 0 0 10px #ffb00055, 0 0 20px #ffb00022;
+    --cat-bg: #110a00;
+    --term-green: #ffb000; --term-glow: 0 0 8px #ffb000, 0 0 20px #ffb00088, 0 0 40px #ffb00044;
+    --term-glitch: glitch 8s ease infinite;
+    --title-blue: #ffb000; --title-glow: 0 0 8px #ffb000, 0 0 20px #ffb00088, 0 0 40px #ffb00044;
+    --scanline: rgba(0,0,0,0.25);
+    --warn: #ffe08a;
+    color-scheme: dark;
+  }
+  /* Green phosphor (VT100 style): monochrome green on black */
+  :root[data-theme="green"] {
+    --bg: #000a02; --surface: #001105; --surface-2: #00200b; --border: #0b5e24;
+    --fg: #33ff66; --fg-dim: #1f9e40; --ok: #7dff9e; --danger: #ff5c5c;
+    --glow: 0 0 10px #33ff6655, 0 0 20px #33ff6622;
+    --cat-bg: #000e04;
+    --term-green: #33ff66; --term-glow: 0 0 8px #33ff66, 0 0 20px #33ff6688, 0 0 40px #33ff6644;
+    --term-glitch: glitch 8s ease infinite;
+    --title-blue: #33ff66; --title-glow: 0 0 8px #33ff66, 0 0 20px #33ff6688, 0 0 40px #33ff6644;
+    --scanline: rgba(0,0,0,0.25);
+    --warn: #d4ff4d;
+    color-scheme: dark;
+  }
   * { box-sizing: border-box; }
   /* form controls do not inherit the page font by default */
   button, input, textarea { font-family: inherit; }
@@ -93,11 +119,26 @@
   .theme-toggle {
     font-family: "Share Tech Mono", monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
     color: var(--fg-dim); background: none; border: 1px solid var(--border); border-radius: 4px;
-    padding: 4px 10px; cursor: pointer; transition: all 0.2s;
+    padding: 4px 10px; cursor: pointer; transition: background-color 0.2s; /* not colors: a theme switch must apply at once */
   }
   .theme-toggle:hover { color: var(--ok); border-color: var(--ok); background: var(--surface-2); }
   /* topbar buttons and the done toggle: bigger and brighter so they are not missed */
   .controls { gap: 10px; flex-wrap: wrap; }
+  .menuwrap { position: relative; display: flex; }
+  .menu {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 1200; min-width: 230px;
+    background: var(--surface-2); border: 1px solid var(--ok); border-radius: 8px; padding: 6px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); display: flex; flex-direction: column; gap: 2px;
+  }
+  .menu[hidden] { display: none; }
+  .menu button {
+    display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: none; border: none;
+    color: var(--fg); padding: 8px 10px; border-radius: 6px; font-size: 0.85rem; cursor: pointer;
+  }
+  .menu button:hover, .menu button:focus-visible { background: var(--surface); color: var(--ok); outline: none; }
+  .menu button[aria-checked="true"] { color: var(--ok); }
+  .menu .check { margin-left: auto; }
+  .menu .sw { width: 16px; height: 16px; border-radius: 4px; border: 1px solid var(--border); flex: none; }
   .controls .theme-toggle, #doneToggle {
     font-size: 12px; padding: 8px 16px; border-radius: 6px; color: var(--ok); border-color: var(--ok);
   }
@@ -192,6 +233,7 @@
   /* the name takes the free space and wraps itself, so the chips and buttons stay on one line */
   .panel-head h2 { font-size: 1.05rem; margin: 0; flex: 1 1 6em; min-width: 0; cursor: text; overflow-wrap: anywhere; }
   .panel-head > :not(h2) { flex: none; }
+  .panel-head .head-actions { display: flex; align-items: center; gap: 8px 10px; margin-left: auto; }
   .panel-head h2[contenteditable="true"] { outline: 1px dashed var(--accent); border-radius: 4px; padding: 0 2px; }
   .chip { font-family: "Share Tech Mono", monospace; font-size: 0.68rem; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--accent); white-space: nowrap; cursor: text; }
   .chip[contenteditable="true"] { outline: 1px dashed var(--accent); }
@@ -366,6 +408,7 @@
     }
     .category-head .iconbtn, .task .del, .task .notebtn { opacity: 1; }
     .theme-toggle { min-height: 44px; padding: 0 14px; font-size: 12px; }
+    .menu button { min-height: 44px; }
     .category-head .addinline, .addrow button, .addrow input[type="text"], .newform input[type="text"],
     .newform button[type="submit"], .addcategory, .btn, .toolbar input[type="search"] { min-height: 44px; }
     .category-head { padding: 6px 10px; gap: 4px 6px; }
@@ -387,8 +430,14 @@
     <div class="controls">
       <button type="button" class="theme-toggle" id="reportBtn"></button>
       <button type="button" class="theme-toggle" id="tagsBtn"></button>
-      <button type="button" class="theme-toggle" id="themeBtn"></button>
-      <button type="button" class="theme-toggle" id="langBtn"></button>
+      <div class="menuwrap">
+        <button type="button" class="theme-toggle" id="themeBtn" aria-haspopup="menu" aria-expanded="false"></button>
+        <div class="menu" id="themeMenu" role="menu" hidden></div>
+      </div>
+      <div class="menuwrap">
+        <button type="button" class="theme-toggle" id="langBtn" aria-haspopup="menu" aria-expanded="false"></button>
+        <div class="menu" id="langMenu" role="menu" hidden></div>
+      </div>
     </div>
   </div>
   <h1>Stacklog</h1>
@@ -504,8 +553,17 @@
       addTask: "adicionar",
       removeTask: "remover",
       removeItem: "remover item",
-      themeDark: "◈ escuro",
-      themeLight: "◈ claro",
+      themeBtn: "◈ tema: {name}",
+      langBtn: "◈ idioma: {name}",
+      autoShort: "auto",
+      theme_auto: "automático (sistema)",
+      theme_dark: "escuro",
+      theme_light: "claro",
+      theme_amber: "âmbar",
+      theme_green: "fósforo verde",
+      lang_auto: "automático (navegador)",
+      lang_pt: "Português",
+      lang_en: "English",
       reportBtn: "◈ relatório",
       reportClose: "◈ fechar relatório",
       reportTitle: "Relatório",
@@ -582,8 +640,17 @@
       addTask: "add",
       removeTask: "remove",
       removeItem: "remove item",
-      themeDark: "◈ dark",
-      themeLight: "◈ light",
+      themeBtn: "◈ theme: {name}",
+      langBtn: "◈ language: {name}",
+      autoShort: "auto",
+      theme_auto: "automatic (system)",
+      theme_dark: "dark",
+      theme_light: "light",
+      theme_amber: "amber",
+      theme_green: "green phosphor",
+      lang_auto: "automatic (browser)",
+      lang_pt: "Português",
+      lang_en: "English",
       reportBtn: "◈ report",
       reportClose: "◈ close report",
       reportTitle: "Report",
@@ -643,7 +710,8 @@
       return (v === "pt" || v === "en") ? v : null;
     } catch (e) { return null; }
   }
-  let LANG = loadLangOverride() || detectLang();
+  let langChoice = loadLangOverride() || "auto";   // "auto" follows the browser
+  let LANG = langChoice === "auto" ? detectLang() : langChoice;
 
   function t(key, vars) {
     let str = (STRINGS[LANG] && STRINGS[LANG][key]) || STRINGS.en[key] || key;
@@ -664,24 +732,88 @@
   const newTagInput = document.getElementById("newTagInput");
   const langBtn = document.getElementById("langBtn");
 
-  function currentTheme() {
-    const override = document.documentElement.dataset.theme;
-    if (override === "dark" || override === "light") return override;
-    return (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
+  // ---------- theme and language menus ----------
+  const THEMES = ["auto", "dark", "light", "amber", "green"];
+  // swatch: background color with the text color in the corner
+  const THEME_SWATCH = {
+    auto: "linear-gradient(135deg, #000308 50%, #f5f2eb 50%)",
+    dark: "linear-gradient(135deg, #000308 58%, #00b4ff 58%)",
+    light: "linear-gradient(135deg, #f5f2eb 58%, #1a5c3a 58%)",
+    amber: "linear-gradient(135deg, #0d0800 58%, #ffb000 58%)",
+    green: "linear-gradient(135deg, #000a02 58%, #33ff66 58%)"
+  };
+  let themeChoice = (() => {
+    try { const v = localStorage.getItem("stacklog_theme"); return THEMES.includes(v) ? v : "auto"; }
+    catch (e) { return "auto"; }
+  })();
+  function applyTheme() {
+    if (themeChoice === "auto") delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = themeChoice;
   }
-  function updateThemeBtn() {
-    const next = currentTheme() === "dark" ? "light" : "dark";
-    themeBtn.textContent = t(next === "dark" ? "themeDark" : "themeLight");
-  }
-  function toggleTheme() {
-    const next = currentTheme() === "dark" ? "light" : "dark";
-    document.documentElement.dataset.theme = next;
-    try { localStorage.setItem("stacklog_theme", next); } catch (e) { /* ignore */ }
+  function setTheme(v) {
+    themeChoice = v;
+    try { if (v === "auto") localStorage.removeItem("stacklog_theme"); else localStorage.setItem("stacklog_theme", v); }
+    catch (e) { /* ignore */ }
+    applyTheme();
     updateThemeBtn();
   }
-  function updateLangBtn() {
-    langBtn.textContent = LANG === "pt" ? "◈ English" : "◈ PT-BR";
+  function updateThemeBtn() {
+    themeBtn.textContent = t("themeBtn", { name: themeChoice === "auto" ? t("autoShort") : t("theme_" + themeChoice) });
   }
+  function updateLangBtn() {
+    langBtn.textContent = t("langBtn", { name: langChoice === "auto" ? t("autoShort") : t("lang_" + langChoice) });
+  }
+  function setLang(v) {
+    langChoice = v;
+    try { if (v === "auto") localStorage.removeItem("stacklog_lang"); else localStorage.setItem("stacklog_lang", v); }
+    catch (e) { /* ignore */ }
+    LANG = v === "auto" ? detectLang() : v;
+    applyStaticStrings();
+    render();
+    if (!reportBox.hidden) loadReport();
+  }
+
+  let openMenu = null;
+  function closeMenu() {
+    if (!openMenu) return;
+    openMenu.menu.hidden = true;
+    openMenu.btn.setAttribute("aria-expanded", "false");
+    openMenu = null;
+  }
+  function toggleMenu(btn, menu, items, current, onPick) {
+    if (openMenu && openMenu.menu === menu) { closeMenu(); return; }
+    closeMenu();
+    menu.innerHTML = "";
+    items.forEach(it => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.setAttribute("role", "menuitemradio");
+      b.setAttribute("aria-checked", String(it.value === current));
+      if (it.swatch) { const sw = el("span", "sw"); sw.style.background = it.swatch; b.appendChild(sw); }
+      b.appendChild(el("span", null, it.label));
+      if (it.value === current) b.appendChild(el("span", "check", "✓"));
+      b.addEventListener("click", () => { closeMenu(); onPick(it.value); btn.focus(); });
+      menu.appendChild(b);
+    });
+    menu.hidden = false;
+    btn.setAttribute("aria-expanded", "true");
+    openMenu = { btn, menu };
+    // keep the list on screen: it opens to the left of the button, or to the right on a narrow screen
+    menu.style.left = ""; menu.style.right = "0";
+    if (menu.getBoundingClientRect().left < 8) { menu.style.right = "auto"; menu.style.left = "0"; }
+    (menu.querySelector('[aria-checked="true"]') || menu.querySelector("button")).focus();
+  }
+  document.addEventListener("click", e => { if (openMenu && !e.target.closest(".menuwrap")) closeMenu(); });
+  document.addEventListener("keydown", e => {
+    if (!openMenu) return;
+    if (e.key === "Escape") { const b = openMenu.btn; closeMenu(); b.focus(); }
+    else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      const items = [...openMenu.menu.querySelectorAll("button")];
+      const i = items.indexOf(document.activeElement);
+      items[(i + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length].focus();
+    }
+  });
   function applyStaticStrings() {
     document.documentElement.lang = LANG === "pt" ? "pt-BR" : "en";
     document.getElementById("subtitle").textContent = t("subtitle");
@@ -700,21 +832,12 @@
     updateThemeBtn();
     updateLangBtn();
   }
-  function toggleLang() {
-    LANG = LANG === "pt" ? "en" : "pt";
-    try { localStorage.setItem("stacklog_lang", LANG); } catch (e) { /* ignore */ }
-    applyStaticStrings();
-    render();
-    if (!reportBox.hidden) loadReport();
-  }
-
-  try {
-    const savedTheme = localStorage.getItem("stacklog_theme");
-    if (savedTheme === "dark" || savedTheme === "light") document.documentElement.dataset.theme = savedTheme;
-  } catch (e) { /* ignore */ }
+  applyTheme();
   applyStaticStrings();
-  themeBtn.addEventListener("click", toggleTheme);
-  langBtn.addEventListener("click", toggleLang);
+  themeBtn.addEventListener("click", () => toggleMenu(themeBtn, document.getElementById("themeMenu"),
+    THEMES.map(v => ({ value: v, label: t("theme_" + v), swatch: THEME_SWATCH[v] })), themeChoice, setTheme));
+  langBtn.addEventListener("click", () => toggleMenu(langBtn, document.getElementById("langMenu"),
+    ["auto", "pt", "en"].map(v => ({ value: v, label: t("lang_" + v) })), langChoice, setLang));
   reportBtn.addEventListener("click", toggleReport);
   reportSince.addEventListener("change", loadReport);
   reportUntil.addEventListener("change", loadReport);
@@ -1218,10 +1341,11 @@
       if (!p.archived_at) head.appendChild(handle);
       head.appendChild(chevron);
       head.appendChild(h2);
-      head.appendChild(chip);
-      head.appendChild(linkEl);
-      head.appendChild(archBtn);
-      head.appendChild(delBtn);
+      // tag, link and buttons move as one block: when the card is narrow they
+      // drop to a second line together, aligned right, instead of splitting
+      const actions = el("span", "head-actions");
+      actions.append(chip, linkEl, archBtn, delBtn);
+      head.appendChild(actions);
       panel.appendChild(head);
 
       const progWrap = document.createElement("div");

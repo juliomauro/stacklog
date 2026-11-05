@@ -58,11 +58,12 @@ answers "what did I get done this week?" without any extra bookkeeping.
 - Layout fits the screen: as many card columns as fit on wide monitors,
   down to one column on a phone, with finger-sized controls on touch
   screens
-- Dark and light theme, follows the system setting by default, with a
-  toggle button to override it
-- Portuguese and English UI, detected from the browser's language, with
-  a toggle button to override it (falls back to English for any other
-  language)
+- Four themes: dark, light, amber phosphor and green phosphor, picked
+  from a list; "automatic" (the default) follows the system's dark or
+  light setting
+- Portuguese and English UI, picked from a list; "automatic" (the
+  default) follows the browser's language, falling back to English for
+  any other language
 - Data persists in SQLite, a single file you can back up or copy, with a
   ready-made daily backup script
 - JSON API for every action, including creating a project with all its
@@ -148,8 +149,9 @@ only over a private network or VPN (Tailscale, WireGuard).
 
 **Top of the page**
 - **Report, tags, theme and language**: the `◈` buttons at the top right.
-  Theme and language choices are remembered in the browser; until you
-  click them, Stacklog follows your system's color scheme and your
+  "Tema" / "theme" and "idioma" / "language" open a list to pick from
+  (arrow keys move, Enter picks, Esc closes). The choice is remembered in
+  the browser; "automatic" follows your system's color scheme and your
   browser's language (English for any language other than Portuguese).
 - **Search**: type in the box under the progress bar. Matching projects
   open by themselves, categories with no match are hidden, archived
